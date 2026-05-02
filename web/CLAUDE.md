@@ -174,3 +174,11 @@ pnpm dlx shadcn@latest add <component>  # shadcn 컴포넌트 추가
 - ❌ Storybook — shadcn 자체가 카탈로그 역할.
 - ❌ Vitest/Playwright — MVP 단계. 핵심 페이지 안정화 후 도입.
 - ❌ Zustand 등 전역 상태 라이브러리 — 서버 상태는 RSC, 클라 상태는 useState로 시작.
+
+## 14. 알려진 후속 거리 (TODO — 디자이너/사용자 액션 필요)
+
+- **소셜 로그인 아이콘 (Kakao/Apple)** — 현재 Wikimedia Commons 공식 SVG 인라인.
+  Figma 디자인과 거의 일치하지만 100% 매칭하려면 디자이너가 export한
+  카카오/애플 자산 필요. `src/components/auth/social-icons.tsx` 참조.
+- **로그인 폼 인증 동작** — 현재 `.env.local`에 placeholder 값. 실제 Supabase
+  프로젝트 만들고 `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY` 교체하면 작동.
