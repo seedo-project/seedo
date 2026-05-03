@@ -1,16 +1,22 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
-type NavKey = "idea" | "feed" | "board" | "my-page";
-
-const NAV_ITEMS: { key: NavKey; label: string; href: string }[] = [
+const NAV_ITEMS = [
   { key: "idea", label: "아이디어", href: "/idea" },
   { key: "feed", label: "피드", href: "/feed" },
   { key: "board", label: "보드", href: "/board" },
   { key: "my-page", label: "마이페이지", href: "/my-page" },
-];
+] as const;
 
-export function Navbar({ current }: { current: NavKey }) {
+export function Navbar() {
+  const pathname = usePathname() ?? "";
+  const currentKey = NAV_ITEMS.find((it) =>
+    pathname === it.href || pathname.startsWith(`${it.href}/`),
+  )?.key;
+
   return (
     <header className="h-[108px] w-full border-b border-[#d4d4d8] px-[100px] py-[25px]">
       <div className="flex w-full items-start justify-between pt-5">
@@ -26,7 +32,7 @@ export function Navbar({ current }: { current: NavKey }) {
         </Link>
         <nav className="flex items-center gap-10">
           {NAV_ITEMS.map(({ key, label, href }) => {
-            const active = key === current;
+            const active = key === currentKey;
             return (
               <Link
                 key={key}
