@@ -318,4 +318,4 @@ ANTHROPIC_API_KEY, OPENAI_API_KEY
 ### 15.4 Pull Request (PR) 및 병합
 - **리뷰 필수**: 최소 1명 이상의 승인이 있어야 `main` 브랜치에 병합 가능.
 - **이슈 연결**: PR 설명에 `Closes #이슈번호`를 적어 병합 시 자동으로 이슈가 닫히게 한다.
-- **병합 방식**: Squash and Merge 권장 (히스토리 간소화).
+- **병합 방식**: Squash and Merge 권장 (히스토리 간소화)..
