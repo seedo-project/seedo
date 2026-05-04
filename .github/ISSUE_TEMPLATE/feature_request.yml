@@ -1,0 +1,22 @@
+name: "🚀 Feature Request"
+description: "새로운 기능을 제안하거나 개발할 때 사용합니다."
+title: "[Feat] "
+labels: ["feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 📌 개요
+        어떤 기능을 개발하는지 설명해주세요.
+  - type: textarea
+    id: tasks
+    attributes:
+      label: "✅ 할 일 목록"
+      placeholder: "- [ ] 기능 구현 1\n- [ ] 기능 구현 2"
+    validations:
+      required: true
+  - type: textarea
+    id: additional_info
+    attributes:
+      label: "💬 추가 사항"
+      description: "참고할 만한 자료나 스크린샷이 있다면 첨부해주세요."
