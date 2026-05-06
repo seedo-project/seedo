@@ -118,7 +118,11 @@ function TermsStep({ onNext }: { onNext: (marketing: boolean) => void }) {
         <label className="flex cursor-pointer items-center gap-2 select-none">
           <Checkbox
             checked={allAgreed}
-            onCheckedChange={(v) => setAllAgreed(v === true)}
+            onCheckedChange={(v) => {
+              const checked = v === true;
+              setAllAgreed(checked);
+              setMarketing(checked);
+            }}
           />
           <span className="text-sm leading-[1.5] tracking-[-0.35px] text-[#71717a]">
             <span className="font-bold text-[#52525b]">전체동의</span>{" "}
@@ -130,7 +134,12 @@ function TermsStep({ onNext }: { onNext: (marketing: boolean) => void }) {
         <label className="flex cursor-pointer items-center gap-2 select-none">
           <Checkbox
             checked={marketing}
-            onCheckedChange={(v) => setMarketing(v === true)}
+            onCheckedChange={(v) => {
+              const checked = v === true;
+              setMarketing(checked);
+              // 마케팅이 유일한 선택 항목이므로 allAgreed와 동기화
+              setAllAgreed(checked);
+            }}
           />
           <span className="text-sm leading-[1.5] font-medium tracking-[-0.35px] text-[#71717a]">
             (선택) 광고성 정보 이메일/SMS 수신 동의

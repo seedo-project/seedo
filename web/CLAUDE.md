@@ -166,7 +166,7 @@ pnpm dlx shadcn@latest add <component>  # shadcn 컴포넌트 추가
 - Tailwind v4는 `tailwind.config.ts` **없음**. theme는 CSS의 `@theme inline`. 새 토큰 추가는 `globals.css`에서.
 - shadcn `base-nova` 스타일은 `@base-ui/react` 기반 (Radix와 prop 조금 다를 수 있음). 컴포넌트 코드 직접 확인.
 - shadcn `form` 컴포넌트는 base-nova 레지스트리에 없음 → react-hook-form + zod로 직접 조합.
-- 의심 시 항상 `/Users/jiseongmin/seedo/web/node_modules/next/dist/docs/`의 로컬 Next 16 docs 참조 (학습 데이터와 다름).
+- 의심 시 항상 `web/node_modules/next/dist/docs/`(레포 기준)의 로컬 Next 16 docs 참조 (학습 데이터와 다름).
 
 ## 13. 안 쓰기로 한 것 (의도적 결정)
 
