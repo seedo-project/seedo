@@ -1,7 +1,6 @@
 # backend/ — Spring Boot 작업 가이드
 
-> ⚠️ **이 폴더는 아직 비어 있다.** 백엔드 스택·패키지 구조는 팀 합의 전이며, 아래 가이드는 한 명의 제안 초안.
-> 정식 결정 전까지는 이 폴더에 코드를 추가하지 않는다.
+> 부트스트랩 완료 (Spring Boot 3.5.14, Gradle 8.14.4 wrapper, Flyway 10, Java 25 toolchain). 도메인 코드는 아직 0줄 — 첫 작업은 Flyway V1 (RBAC + 크레딧).
 
 > 루트 `CLAUDE.md`(도메인·스키마·트랜잭션 규칙)와 함께 자동 로드된다. 이 파일은 **Spring/Java 구현 디테일**에만 집중.
 
@@ -10,11 +9,11 @@
 ## 스택 (확정)
 
 - **Java 25** (LTS, Gradle toolchain으로 강제)
-- **Spring Boot 3.5+** (Java 25 정식 지원 버전 사용 — 정확한 minor는 부트스트랩 시점에 확인)
+- **Spring Boot 3.5.14** (현 부트스트랩 시점 최신 3.5.x 패치)
 - **Spring Security** + **Spring Data JPA** + `oauth2-resource-server`
 - **Flyway 10.x** (`flyway-database-postgresql` 모듈 필수)
 - **PostgreSQL 16+** (Supabase, vector/pgcrypto 확장 사용)
-- **빌드: Gradle Groovy DSL** (`build.gradle`, `settings.gradle`) — Kotlin DSL 사용 안 함
+- **빌드: Gradle 8.14.4 wrapper, Groovy DSL** (`build.gradle`, `settings.gradle`) — Kotlin DSL 사용 안 함
 - **언어: Java만** — Kotlin 사용 안 함
 
 ## 패키지 레이아웃 (도메인별, 확정)
@@ -68,7 +67,7 @@ dev.seedo
 ./gradlew clean build -x test      # 테스트 빼고 빌드
 ```
 
-> Gradle wrapper jar가 아직 없으면 IDE에서 backend/를 Gradle 프로젝트로 import (자동 다운로드) 또는 `gradle wrapper --gradle-version 8.10.2` 로 생성.
+> Gradle wrapper(`./gradlew`)가 이미 들어 있다 — JDK 25만 깔려 있으면 바로 사용 가능.
 
 ## Flyway 마이그레이션 워크플로
 
