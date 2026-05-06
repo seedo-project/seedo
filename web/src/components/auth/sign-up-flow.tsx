@@ -60,7 +60,7 @@ export function SignUpFlow() {
 
   return (
     <main className="flex min-h-svh items-center justify-center bg-muted px-4 py-12">
-      <div className="flex w-[440px] flex-col items-center gap-5 rounded-xl bg-white px-5 pb-5">
+      <div className="flex w-[440px] flex-col items-center gap-5 rounded-xl bg-card px-5 pb-5">
         <div className="flex w-full flex-col items-center">
           <header className="flex w-full items-center justify-between py-5">
             <button
