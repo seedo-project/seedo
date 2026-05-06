@@ -157,7 +157,7 @@ pnpm dlx shadcn@latest add <component>  # shadcn 컴포넌트 추가
 ## 11. 자동 동작 (Claude Code 훅)
 
 - **PostToolUse on Edit/Write/MultiEdit** → `web/`의 `.ts/.tsx` 편집 직후 `tsc --noEmit --incremental` 자동 실행. 타입 에러 있으면 다음 턴에 자동 피드백 → 사용자 거치지 않고 자체 수정.
-- 훅 스크립트: `/Users/jiseongmin/seedo/.claude/hooks/typecheck-web.sh`
+- 훅 스크립트: `.claude/hooks/typecheck-web.sh` (레포 루트 기준 상대경로)
 
 ## 12. Next 16 / Tailwind v4 / shadcn base-nova 주의사항
 

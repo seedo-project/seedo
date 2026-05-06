@@ -171,11 +171,24 @@ function InfoStep({ marketingConsent }: { marketingConsent: boolean }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isValidBirthDate = (() => {
+    if (!/^\d{4}$/.test(year) || !/^\d{1,2}$/.test(month) || !/^\d{1,2}$/.test(day)) {
+      return false;
+    }
+    const y = Number(year);
+    const m = Number(month);
+    const d = Number(day);
+    const date = new Date(y, m - 1, d);
+    return (
+      date.getFullYear() === y &&
+      date.getMonth() === m - 1 &&
+      date.getDate() === d
+    );
+  })();
+
   const isValid =
     name.trim().length > 0 &&
-    /^\d{4}$/.test(year) &&
-    /^\d{1,2}$/.test(month) &&
-    /^\d{1,2}$/.test(day) &&
+    isValidBirthDate &&
     gender !== null &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) &&
     password.length >= 8 &&

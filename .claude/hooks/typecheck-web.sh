@@ -10,7 +10,9 @@
 
 set -uo pipefail
 
-WEB_DIR="/Users/jiseongmin/seedo/web"
+# 스크립트 위치 기준으로 레포 루트 → web/ 디렉토리 계산 (절대경로 박지 않기)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WEB_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)/web"
 
 # stdin JSON 파싱 (jq 없으면 대충 grep)
 PAYLOAD="$(cat)"
