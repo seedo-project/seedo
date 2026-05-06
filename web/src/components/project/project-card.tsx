@@ -45,13 +45,13 @@ export function ProjectCard({ project }: { project: Project }) {
             <ChipStatus key={s} variant={s} />
           ))}
         </div>
-        <h3 className="line-clamp-1 text-base leading-[1.5] font-semibold tracking-[-0.4px] text-[#27272a]">
+        <h3 className="line-clamp-1 text-base leading-[1.5] font-semibold tracking-[-0.4px] text-foreground">
           {project.title}
         </h3>
         <p className="line-clamp-1 text-[11px] leading-[1.5] font-normal tracking-[-0.275px] text-[#a1a1aa]">
           {project.subtitle}
         </p>
-        <p className="line-clamp-3 h-[54px] text-xs leading-[1.5] font-medium tracking-[-0.3px] text-[#71717a]">
+        <p className="line-clamp-3 h-[54px] text-xs leading-[1.5] font-medium tracking-[-0.3px] text-muted-foreground">
           {project.description}
         </p>
       </div>

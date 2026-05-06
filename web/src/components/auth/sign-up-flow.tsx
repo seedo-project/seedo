@@ -59,7 +59,7 @@ export function SignUpFlow() {
   };
 
   return (
-    <main className="flex min-h-svh items-center justify-center bg-[#f4f4f5] px-4 py-12">
+    <main className="flex min-h-svh items-center justify-center bg-muted px-4 py-12">
       <div className="flex w-[440px] flex-col items-center gap-5 rounded-xl bg-white px-5 pb-5">
         <div className="flex w-full flex-col items-center">
           <header className="flex w-full items-center justify-between py-5">
@@ -77,7 +77,7 @@ export function SignUpFlow() {
                 className="h-[18.249px] w-[10px]"
               />
             </button>
-            <h1 className="text-xl font-bold tracking-[-0.5px] text-[#27272a]">
+            <h1 className="text-xl font-bold tracking-[-0.5px] text-foreground">
               회원가입
             </h1>
             <div className="size-7" aria-hidden />
@@ -105,11 +105,11 @@ function TermsStep({ onNext }: { onNext: (marketing: boolean) => void }) {
 
   return (
     <div className="flex w-[400px] flex-col items-start gap-3">
-      <div className="h-[440px] w-full overflow-y-auto rounded-md border border-[#e4e4e7] p-4">
-        <p className="text-sm leading-[1.5] font-bold tracking-[-0.35px] text-[#71717a]">
+      <div className="h-[440px] w-full overflow-y-auto rounded-md border border-border p-4">
+        <p className="text-sm leading-[1.5] font-bold tracking-[-0.35px] text-muted-foreground">
           {TERMS_TITLE}
         </p>
-        <p className="text-sm leading-[1.5] font-medium tracking-[-0.35px] whitespace-pre-line text-[#71717a]">
+        <p className="text-sm leading-[1.5] font-medium tracking-[-0.35px] whitespace-pre-line text-muted-foreground">
           {TERMS_BODY}
         </p>
       </div>
@@ -124,8 +124,8 @@ function TermsStep({ onNext }: { onNext: (marketing: boolean) => void }) {
               setMarketing(checked);
             }}
           />
-          <span className="text-sm leading-[1.5] tracking-[-0.35px] text-[#71717a]">
-            <span className="font-bold text-[#52525b]">전체동의</span>{" "}
+          <span className="text-sm leading-[1.5] tracking-[-0.35px] text-muted-foreground">
+            <span className="font-bold text-muted-foreground">전체동의</span>{" "}
             <span className="font-medium">
               (필수) 선택항목 포함 모든 약관에 동의합니다.
             </span>
@@ -141,7 +141,7 @@ function TermsStep({ onNext }: { onNext: (marketing: boolean) => void }) {
               setAllAgreed(checked);
             }}
           />
-          <span className="text-sm leading-[1.5] font-medium tracking-[-0.35px] text-[#71717a]">
+          <span className="text-sm leading-[1.5] font-medium tracking-[-0.35px] text-muted-foreground">
             (선택) 광고성 정보 이메일/SMS 수신 동의
           </span>
         </label>
@@ -342,7 +342,7 @@ function FieldRow({
 }) {
   return (
     <div className="flex w-full items-center justify-between">
-      <span className="text-base leading-[1.5] font-semibold tracking-[-0.4px] text-[#27272a]">
+      <span className="text-base leading-[1.5] font-semibold tracking-[-0.4px] text-foreground">
         {label}
       </span>
       {children}
@@ -354,7 +354,7 @@ function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className={`h-12 w-[276px] rounded-md border border-[#d4d4d8] px-4 py-3 text-sm leading-[1.5] tracking-[-0.35px] text-[#27272a] placeholder:font-normal placeholder:text-[#d4d4d8] focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+      className={`h-12 w-[276px] rounded-md border border-input px-4 py-3 text-sm leading-[1.5] tracking-[-0.35px] text-foreground placeholder:font-normal placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 ${
         props.className ?? ""
       }`}
     />
@@ -379,16 +379,16 @@ function PasswordInput({
         {...props}
         value={value}
         type={show ? "text" : "password"}
-        className={`h-12 w-full rounded-md border border-[#d4d4d8] py-3 ${
+        className={`h-12 w-full rounded-md border border-input py-3 ${
           hasValue ? "pr-12" : "pr-4"
-        } pl-4 text-sm leading-[1.5] tracking-[-0.35px] text-[#27272a] placeholder:font-normal placeholder:text-[#d4d4d8] focus:ring-2 focus:ring-primary/30 focus:outline-none ${className ?? ""}`}
+        } pl-4 text-sm leading-[1.5] tracking-[-0.35px] text-foreground placeholder:font-normal placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/30 focus:outline-none ${className ?? ""}`}
       />
       {hasValue && (
         <button
           type="button"
           onClick={() => setShow((s) => !s)}
           aria-label={show ? "비밀번호 숨기기" : "비밀번호 보이기"}
-          className="absolute top-1/2 right-3 flex size-6 -translate-y-1/2 items-center justify-center text-[#d4d4d8] hover:text-[#71717a]"
+          className="absolute top-1/2 right-3 flex size-6 -translate-y-1/2 items-center justify-center text-[#d4d4d8] hover:text-muted-foreground"
         >
           {show ? (
             <Eye className="size-[18px]" />
@@ -419,12 +419,12 @@ function SegmentInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         inputMode="numeric"
-        className="h-12 w-full rounded-md border border-[#d4d4d8] py-3 pr-8 pl-4 text-right text-sm leading-[1.5] font-medium tracking-[-0.35px] text-[#27272a] focus:ring-2 focus:ring-primary/30 focus:outline-none"
+        className="h-12 w-full rounded-md border border-input py-3 pr-8 pl-4 text-right text-sm leading-[1.5] font-medium tracking-[-0.35px] text-foreground focus:ring-2 focus:ring-primary/30 focus:outline-none"
       />
       <span
         className={`pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-sm leading-[1.5] tracking-[-0.35px] ${
           hasValue
-            ? "font-medium text-[#27272a]"
+            ? "font-medium text-foreground"
             : "font-normal text-[#d4d4d8]"
         }`}
       >
