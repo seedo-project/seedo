@@ -6,9 +6,9 @@
 -- =====================================================================
 
 
--- ----- 0. 확장 + 공통 트리거 함수 -----------------------------------
-
-CREATE EXTENSION IF NOT EXISTS pgcrypto;  -- gen_random_uuid()
+-- ----- 0. 공통 트리거 함수 ------------------------------------------
+-- users.id 는 외부에서 명시적으로 박는다 (Supabase auth.users.id 와 동일 uuid).
+-- V1 에선 uuid 기본 생성기가 필요 없으므로 pgcrypto 확장도 만들지 않는다.
 
 CREATE OR REPLACE FUNCTION set_updated_at() RETURNS trigger
 LANGUAGE plpgsql AS $$
@@ -24,14 +24,17 @@ $$;
 -- hard delete 는 ADMIN 만, 기본은 status='DELETED' + deleted_at 소프트삭제.
 
 CREATE TABLE users (
-    id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    id         uuid PRIMARY KEY,
     email      varchar(255) NOT NULL UNIQUE,
     nickname   varchar(50)  NOT NULL UNIQUE,
     status     varchar(20)  NOT NULL DEFAULT 'ACTIVE'
                CHECK (status IN ('ACTIVE', 'SUSPENDED', 'DELETED')),
     deleted_at timestamptz,
     created_at timestamptz  NOT NULL DEFAULT now(),
-    updated_at timestamptz  NOT NULL DEFAULT now()
+    updated_at timestamptz  NOT NULL DEFAULT now(),
+    -- 소프트삭제 불변식: status='DELETED' ↔ deleted_at NOT NULL.
+    -- ACTIVE/SUSPENDED 인데 deleted_at 채워진 row, DELETED 인데 비워진 row 모두 차단.
+    CHECK ((status = 'DELETED') = (deleted_at IS NOT NULL))
 );
 
 CREATE INDEX idx_users_nickname ON users(nickname);
@@ -76,9 +79,12 @@ FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- ----- 3. user_roles, role_permissions ------------------------------
 
+-- RBAC 매핑 FK 정책: 모두 ON DELETE RESTRICT.
+-- users / roles / permissions 는 hard delete 시 매핑이 조용히 사라지면 안 됨 — 권한 누락/과부여 사고 방지.
+-- hard delete 가 필요하면 매핑부터 명시적으로 정리하게 강제 (CLAUDE.md §5.8, §6.4).
 CREATE TABLE user_roles (
     id         bigserial PRIMARY KEY,
-    user_id    uuid        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id    uuid        NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     role_id    bigint      NOT NULL REFERENCES roles(id) ON DELETE RESTRICT,
     granted_at timestamptz NOT NULL DEFAULT now(),
     granted_by uuid                 REFERENCES users(id) ON DELETE SET NULL,
@@ -89,8 +95,8 @@ CREATE INDEX idx_user_roles_user ON user_roles(user_id);
 
 CREATE TABLE role_permissions (
     id            bigserial PRIMARY KEY,
-    role_id       bigint NOT NULL REFERENCES roles(id)       ON DELETE CASCADE,
-    permission_id bigint NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
+    role_id       bigint NOT NULL REFERENCES roles(id)       ON DELETE RESTRICT,
+    permission_id bigint NOT NULL REFERENCES permissions(id) ON DELETE RESTRICT,
     UNIQUE (role_id, permission_id)
 );
 
