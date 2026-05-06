@@ -48,7 +48,7 @@ export function ProjectCard({ project }: { project: Project }) {
         <h3 className="line-clamp-1 text-base leading-[1.5] font-semibold tracking-[-0.4px] text-foreground">
           {project.title}
         </h3>
-        <p className="line-clamp-1 text-[11px] leading-[1.5] font-normal tracking-[-0.275px] text-[#a1a1aa]">
+        <p className="line-clamp-1 text-[11px] leading-[1.5] font-normal tracking-[-0.275px] text-muted-foreground">
           {project.subtitle}
         </p>
         <p className="line-clamp-3 h-[54px] text-xs leading-[1.5] font-medium tracking-[-0.3px] text-muted-foreground">

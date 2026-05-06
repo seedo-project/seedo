@@ -388,7 +388,7 @@ function PasswordInput({
           type="button"
           onClick={() => setShow((s) => !s)}
           aria-label={show ? "비밀번호 숨기기" : "비밀번호 보이기"}
-          className="absolute top-1/2 right-3 flex size-6 -translate-y-1/2 items-center justify-center text-[#d4d4d8] hover:text-muted-foreground"
+          className="absolute top-1/2 right-3 flex size-6 -translate-y-1/2 items-center justify-center text-muted-foreground/70 hover:text-muted-foreground"
         >
           {show ? (
             <Eye className="size-[18px]" />
@@ -425,7 +425,7 @@ function SegmentInput({
         className={`pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-sm leading-[1.5] tracking-[-0.35px] ${
           hasValue
             ? "font-medium text-foreground"
-            : "font-normal text-[#d4d4d8]"
+            : "font-normal text-muted-foreground/70"
         }`}
       >
         {unit}
