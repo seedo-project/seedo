@@ -141,6 +141,7 @@ const res = await springFetch("/api/v1/ideas/123/purchase", { method: "POST" });
 NEXT_PUBLIC_SUPABASE_URL              # 클라이언트 노출 OK
 NEXT_PUBLIC_SUPABASE_ANON_KEY         # 클라이언트 노출 OK (RLS로 보호)
 NEXT_PUBLIC_API_BASE_URL              # Spring API base
+NEXT_PUBLIC_DEV_SKIP_AUTH             # 로컬 개발용 (main) 그룹 인증 우회. NODE_ENV=development일 때만 적용. Supabase 실제 환경 만들면 제거
 ```
 - `SUPABASE_SERVICE_ROLE_KEY`는 Next 쪽 절대 사용 금지 (Spring 전용).
 
