@@ -26,7 +26,7 @@
 
 ## 2. 디렉토리 구조 (실제)
 
-```
+```text
 web/
 ├── package.json
 ├── next.config.ts            ← turbopack.root 고정 (lockfile 모호 방지)
@@ -137,7 +137,7 @@ const res = await springFetch("/api/v1/ideas/123/purchase", { method: "POST" });
 
 ## 9. 환경 변수
 
-```
+```dotenv
 NEXT_PUBLIC_SUPABASE_URL              # 클라이언트 노출 OK
 NEXT_PUBLIC_SUPABASE_ANON_KEY         # 클라이언트 노출 OK (RLS로 보호)
 NEXT_PUBLIC_API_BASE_URL              # Spring API base
