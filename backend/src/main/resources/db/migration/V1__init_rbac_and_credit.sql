@@ -45,7 +45,7 @@ FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 -- ----- 2. roles, permissions ----------------------------------------
 
 CREATE TABLE roles (
-    id         serial PRIMARY KEY,
+    id         bigserial PRIMARY KEY,
     code       varchar(50)  NOT NULL UNIQUE,
     name       varchar(100) NOT NULL,
     level      int          NOT NULL,
@@ -58,7 +58,7 @@ BEFORE UPDATE ON roles
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 CREATE TABLE permissions (
-    id          serial PRIMARY KEY,
+    id          bigserial PRIMARY KEY,
     code        varchar(80)  NOT NULL UNIQUE,
     resource    varchar(50)  NOT NULL,
     action      varchar(50)  NOT NULL,
@@ -79,7 +79,7 @@ FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TABLE user_roles (
     id         bigserial PRIMARY KEY,
     user_id    uuid        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role_id    int         NOT NULL REFERENCES roles(id) ON DELETE RESTRICT,
+    role_id    bigint      NOT NULL REFERENCES roles(id) ON DELETE RESTRICT,
     granted_at timestamptz NOT NULL DEFAULT now(),
     granted_by uuid                 REFERENCES users(id) ON DELETE SET NULL,
     UNIQUE (user_id, role_id)
@@ -89,8 +89,8 @@ CREATE INDEX idx_user_roles_user ON user_roles(user_id);
 
 CREATE TABLE role_permissions (
     id            bigserial PRIMARY KEY,
-    role_id       int NOT NULL REFERENCES roles(id)       ON DELETE CASCADE,
-    permission_id int NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
+    role_id       bigint NOT NULL REFERENCES roles(id)       ON DELETE CASCADE,
+    permission_id bigint NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
     UNIQUE (role_id, permission_id)
 );
 
@@ -125,16 +125,19 @@ CREATE TABLE credit_transactions (
     reference_type varchar(50),                     -- PG_PAYMENT, IDEA_PURCHASE, ADOPTION, ...
     reference_id   varchar(100),
     description    varchar(255),
-    created_at     timestamptz NOT NULL DEFAULT now()
+    created_at     timestamptz NOT NULL DEFAULT now(),
+    -- reference 는 둘 다 있거나 둘 다 없거나 — 한쪽만 채워진 row 금지
+    CHECK ((reference_type IS NULL) = (reference_id IS NULL))
 );
 
 CREATE INDEX idx_credit_tx_user_created
     ON credit_transactions(user_id, created_at DESC);
 
--- 멱등성 검사용 partial index (reference_type 이 있는 row 만)
-CREATE INDEX idx_credit_tx_reference
+-- 멱등성 강제: 같은 (reference_type, reference_id) 두 번 INSERT 차단.
+-- PG webhook 재시도, 채택 보상 중복 적재 등을 DB 레벨에서 막는다.
+CREATE UNIQUE INDEX idx_credit_tx_reference
     ON credit_transactions(reference_type, reference_id)
-    WHERE reference_type IS NOT NULL;
+    WHERE reference_type IS NOT NULL AND reference_id IS NOT NULL;
 
 CREATE OR REPLACE FUNCTION block_credit_tx_modification() RETURNS trigger
 LANGUAGE plpgsql AS $$
