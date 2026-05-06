@@ -128,6 +128,16 @@ CREATE TABLE credit_transactions (
     type           varchar(20) NOT NULL
                    CHECK (type IN ('CHARGE', 'SPEND', 'REWARD', 'REFUND', 'ADJUST')),
     balance_after  bigint      NOT NULL CHECK (balance_after >= 0),
+    -- 타입-부호 정합성: 잘못된 부호로 잔액 캐시·원장 합계 어긋나는 사고 방지.
+    --   CHARGE/REWARD/REFUND > 0  (잔액 증가)
+    --   SPEND                < 0  (잔액 감소)
+    --   ADJUST              != 0  (정정 — 양/음 모두 가능, 0 은 무의미)
+    -- REFUND 부호 컨벤션: 환불 수령자의 잔액 증가 = 양수.
+    CHECK (
+        (type IN ('CHARGE', 'REWARD', 'REFUND') AND amount > 0) OR
+        (type = 'SPEND'  AND amount < 0) OR
+        (type = 'ADJUST' AND amount <> 0)
+    ),
     reference_type varchar(50),                     -- PG_PAYMENT, IDEA_PURCHASE, ADOPTION, ...
     reference_id   varchar(100),
     description    varchar(255),
