@@ -15,13 +15,13 @@
 seedo/
 ├── README.md, CLAUDE.md           ← 온보딩 + AI 가이드
 ├── docs/                          ← 설계문서 (사람용)
-├── backend/                       ← Spring Boot — Java 25 + Gradle Groovy DSL (미구현)
+├── backend/                       ← Spring Boot 3.5 — Java 25 + Gradle Groovy DSL (부트스트랩 완료)
 │   └── CLAUDE.md
 └── web/                           ← Next.js 15+ App Router (미구현)
     └── CLAUDE.md
 ```
 
-`backend/`, `web/`은 팀 합의 전이라 폴더 + `CLAUDE.md`만 있는 상태.
+`backend/`는 부트스트랩 완료 (Spring Boot 3.5.14, Gradle 8.14.4 wrapper, Flyway). `web/`은 폴더 + `CLAUDE.md`만 있는 상태.
 
 ## 3. 도메인 모델
 
@@ -278,8 +278,8 @@ ANTHROPIC_API_KEY, OPENAI_API_KEY
 
 ## 14. 진행 상태 (자주 stale — 시작점만)
 
-- **현재**: 도메인/ERD 설계만 완료 (`docs/`). 백엔드/프론트 미구현, **팀 합의 전**.
-- 합의 후 첫 작업: Flyway V1 (RBAC + 크레딧) → V2 (이상 도메인 + pgvector) → JWT 필터 → `handle_new_user()` 트리거.
+- **현재**: 도메인/ERD 설계 완료 (`docs/`), `backend/` 부트스트랩 완료 (스켈레톤만 — 실제 도메인 코드 0줄). `web/` 미구현.
+- 다음 작업: Flyway V1 (RBAC + 크레딧) → V2 (이상 도메인 + pgvector) → JWT 필터 → `handle_new_user()` 트리거.
 - 전체 순서: 인프라/인증 → 크레딧/아이디어 → 프로젝트/보상 → 게시판/인터랙션 → 알림/관리자/배포
 
 > 컨벤션·트랜잭션 패턴(§6~§10)은 합의 후에도 유효.
@@ -318,4 +318,4 @@ ANTHROPIC_API_KEY, OPENAI_API_KEY
 ### 15.4 Pull Request (PR) 및 병합
 - **리뷰 필수**: 최소 1명 이상의 승인이 있어야 `main` 브랜치에 병합 가능.
 - **이슈 연결**: PR 설명에 `Closes #이슈번호`를 적어 병합 시 자동으로 이슈가 닫히게 한다.
-- **병합 방식**: Squash and Merge 권장 (히스토리 간소화)..
+- **병합 방식**: Squash and Merge 권장 (히스토리 간소화).
