@@ -69,26 +69,27 @@ export default async function ProjectDetailPage({
               </p>
             </div>
             <div className="flex items-center">
-              <button
-                type="button"
-                aria-label={`북마크 ${project.bookmarkCount}회`}
-                className="flex size-[60px] flex-col items-center justify-center text-muted-foreground hover:text-foreground"
+              {/* TODO: 북마크/Hype 토글 동작 구현 시 button + onClick으로 전환. 현재는 카운트 표시만. */}
+              <div
+                role="group"
+                aria-label={`북마크 ${project.bookmarkCount.toLocaleString("ko-KR")}회`}
+                className="flex size-[60px] flex-col items-center justify-center text-muted-foreground"
               >
                 <Bookmark className="size-6" aria-hidden />
                 <span className="text-xs leading-[1.3] font-bold tracking-[-0.3px]">
                   {project.bookmarkCount.toLocaleString("ko-KR")}
                 </span>
-              </button>
-              <button
-                type="button"
-                aria-label={`Hype ${project.hypeCount}회`}
-                className="flex size-[60px] flex-col items-center justify-center text-muted-foreground hover:text-foreground"
+              </div>
+              <div
+                role="group"
+                aria-label={`Hype ${project.hypeCount.toLocaleString("ko-KR")}회`}
+                className="flex size-[60px] flex-col items-center justify-center text-muted-foreground"
               >
                 <Star className="size-6" aria-hidden />
                 <span className="text-xs leading-[1.3] font-bold tracking-[-0.3px]">
                   {project.hypeCount.toLocaleString("ko-KR")}
                 </span>
-              </button>
+              </div>
             </div>
           </div>
         </div>

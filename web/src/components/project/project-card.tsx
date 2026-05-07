@@ -31,7 +31,7 @@ export function ProjectCard({
             className="rounded-lg object-cover"
           />
         )}
-        <span aria-label="북마크" className="relative size-6">
+        <span aria-hidden className="relative size-6">
           <Image
             src="/seedo/icons/bookmark.svg"
             alt=""
