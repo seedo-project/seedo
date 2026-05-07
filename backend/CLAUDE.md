@@ -154,11 +154,8 @@ OPENAI_API_KEY=...
 ## 테스트
 
 - 단위 테스트: 일반 JUnit 5 + Mockito. Spring 컨텍스트 띄우지 않음.
-- 통합 테스트: `@SpringBootTest` + **Testcontainers Postgres** (운영과 동일 PG 버전). 추후 의존성 추가:
-  ```groovy
-  testImplementation 'org.springframework.boot:spring-boot-testcontainers'
-  testImplementation 'org.testcontainers:postgresql'
-  ```
+- 통합 테스트: `@SpringBootTest` + **Testcontainers Postgres** (운영과 동일 PG 버전). 의존성 (`spring-boot-testcontainers`, `testcontainers:postgresql`, `testcontainers:junit-jupiter`) 은 이미 추가되어 있다.
+- 새 통합테스트는 `dev.seedo.support.AbstractIntegrationTest` 를 상속한다 — PG 16-alpine 컨테이너가 한 번만 부팅되고, Flyway 가 V1+ 를 적용한 datasource 가 자동 주입된다. 클래스명 컨벤션은 `*IT.java`.
 - 절대 H2 등 인메모리 DB로 통합테스트 하지 말 것 — `timestamptz`, `vector`, partial index 등이 안 맞음.
 - 트랜잭션 테스트는 동시성도 검증: 2 스레드로 동시 구매 → 한 건만 성공 확인.
 
