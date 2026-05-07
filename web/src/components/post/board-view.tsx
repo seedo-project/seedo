@@ -145,21 +145,26 @@ function PostCard({ post }: { post: Post }) {
   const typeLabel =
     POST_TYPES.find((t) => t.value === post.postType)?.label ?? post.postType;
   return (
-    <article className="flex h-[132px] flex-col items-start rounded-md border border-border px-5 py-4">
-      <div className="flex h-[101px] w-full flex-col gap-0.5">
-        <p className="text-[11px] leading-[1.5] tracking-[-0.275px] text-muted-foreground">
-          {typeLabel}
-        </p>
-        <h3 className="line-clamp-1 text-base leading-[1.5] font-semibold tracking-[-0.4px] text-foreground">
-          {post.title}
-        </h3>
-        <p className="line-clamp-2 h-9 text-xs leading-[1.5] font-medium tracking-[-0.3px] whitespace-pre-line text-muted-foreground">
-          {post.preview}
-        </p>
-        <p className="text-[11px] leading-[1.5] tracking-[-0.275px] text-muted-foreground">
-          {post.timestamp}
-        </p>
-      </div>
-    </article>
+    <Link
+      href={`/board/${post.id}`}
+      className="rounded-md focus:ring-2 focus:ring-primary/30 focus:outline-none"
+    >
+      <article className="flex h-[132px] flex-col items-start rounded-md border border-border px-5 py-4 transition-colors hover:bg-muted/50">
+        <div className="flex h-[101px] w-full flex-col gap-0.5">
+          <p className="text-[11px] leading-[1.5] tracking-[-0.275px] text-muted-foreground">
+            {typeLabel}
+          </p>
+          <h3 className="line-clamp-1 text-base leading-[1.5] font-semibold tracking-[-0.4px] text-foreground">
+            {post.title}
+          </h3>
+          <p className="line-clamp-2 h-9 text-xs leading-[1.5] font-medium tracking-[-0.3px] whitespace-pre-line text-muted-foreground">
+            {post.preview}
+          </p>
+          <p className="text-[11px] leading-[1.5] tracking-[-0.275px] text-muted-foreground">
+            {post.timestamp}
+          </p>
+        </div>
+      </article>
+    </Link>
   );
 }
