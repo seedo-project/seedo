@@ -291,9 +291,32 @@ ANTHROPIC_API_KEY, OPENAI_API_KEY
 팀원과 협업 시 코드의 이력을 명확히 관리하기 위해 아래 규칙을 준수한다.
 
 ### 15.1 이슈 (Issue) 관리
-작업 시작 전 항상 이슈를 먼저 생성한다.
+작업 시작 전 항상 이슈를 먼저 생성한다. GitHub UI 또는 `gh issue create` 모두 `.github/ISSUE_TEMPLATE/`의 양식을 따른다 (CLI에서 `--body`로 직접 작성하더라도 동일한 섹션 구조를 유지).
+
 - **제목**: `[유형] 작업 내용` (예: `[Feat] 로그인 API 구현`)
-- **라벨**: `feature`, `bug`, `documentation`, `refactor` 등 적절한 라벨 부여
+- **양식 파일**:
+    - `feature_request.yml` — Feature: `📌 개요` / `✅ 할 일 목록` (필수) / `💬 추가 사항`
+    - `bug_report.yml` — Bug: `🚨 버그 상황` / `🔁 재현 방법` (필수) / `💡 예상 결과` / `📸 스크린샷`
+- **라벨**:
+
+    필수 라벨:
+
+    | 이름 | 색상 | 설명 |
+    |---|---|---|
+    | `feature` | `#a2eeef` | 새로운 기능 추가 (New feature) |
+    | `bug` | `#d73a4a` | 예상치 못한 오류나 문제 해결 (Something isn't working) |
+    | `documentation` | `#0075ca` | 문서 추가 또는 수정 (Improvements or additions to documentation) |
+    | `refactor` | `#e99695` | 기능 변경 없이 코드 구조 개선 (A code change that neither fixes a bug nor adds a feature) |
+    | `chore` | `#fbca04` | 빌드 업무 수정, 패키지 매니저 설정 등 단순 작업 (Other changes that don't modify src or test files) |
+
+    기타 라벨 (선택):
+
+    | 이름 | 색상 | 설명 |
+    |---|---|---|
+    | `design` | `#fef2c0` | UI/UX 디자인 관련 작업 (UI/UX design related tasks) |
+    | `test` | `#c2e0c6` | 테스트 코드 추가 또는 수정 (Adding missing tests or correcting existing tests) |
+    | `style` | `#d4c5f9` | 코드 포맷팅, 세미콜론 누락 등 스타일 수정 (Changes that do not affect the meaning of the code) |
+    | `fix` | `#d73a4a` | (bug와 동일) 버그 수정 작업 |
 
 ### 15.2 브랜치 전략 (GitHub Flow)
 이슈 번호를 포함하여 어떤 작업을 하는 브랜치인지 명시한다.
