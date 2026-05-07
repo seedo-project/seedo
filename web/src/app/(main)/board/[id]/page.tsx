@@ -17,8 +17,9 @@ export default async function BoardDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await params;
-  const post = DUMMY_POST;
+  const { id } = await params;
+  // TODO: Supabase에서 id로 post 조회. 지금은 디자인 검증용 더미.
+  const post = { ...DUMMY_POST, id };
 
   return (
     <main className="mx-auto w-[820px] pt-8 pb-16">
