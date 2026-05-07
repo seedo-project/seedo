@@ -18,7 +18,7 @@ export function Navbar() {
   )?.key;
 
   return (
-    <header className="h-[108px] w-full border-b border-input px-[100px] py-[25px]">
+    <header className="h-[108px] w-full border-b border-input px-[100px] py-[32px]">
       <div className="flex w-full items-start justify-between pt-5">
         <Link href="/idea" aria-label="Seedo 홈" className="block">
           <Image
