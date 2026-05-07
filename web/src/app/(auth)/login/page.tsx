@@ -34,7 +34,7 @@ const SOCIAL_LOGINS: SocialLogin[] = [
     name: "google",
     label: "구글",
     Icon: FcGoogle,
-    bg: "bg-white border border-zinc-200",
+    bg: "bg-white border border-border",
     iconClass: "size-5",
   },
   {
@@ -49,7 +49,7 @@ const SOCIAL_LOGINS: SocialLogin[] = [
 export default function LoginPage() {
   return (
     <main className="flex min-h-svh flex-col items-center pt-[280px]">
-      <p className="text-xs leading-normal font-medium text-zinc-600">
+      <p className="text-xs leading-normal font-medium text-muted-foreground">
         일상에서 <span className="font-bold">싹</span>트는 아이디어
       </p>
 
@@ -66,7 +66,7 @@ export default function LoginPage() {
         <LoginForm />
       </div>
 
-      <div className="mt-8 h-px w-[400px] bg-zinc-200" />
+      <div className="mt-8 h-px w-[400px] bg-border" />
 
       <div className="mt-8 flex items-center gap-5">
         {SOCIAL_LOGINS.map(({ name, label, Icon, bg, iconClass }) => (
@@ -83,7 +83,7 @@ export default function LoginPage() {
 
       <Link
         href="/sign-up"
-        className="mt-8 text-sm font-medium text-zinc-500 underline underline-offset-2 hover:text-zinc-700"
+        className="mt-8 text-sm font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground"
       >
         회원가입
       </Link>
