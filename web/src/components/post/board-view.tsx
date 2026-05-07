@@ -147,7 +147,7 @@ function PostCard({ post }: { post: Post }) {
   return (
     <Link
       href={`/board/${post.id}`}
-      className="rounded-md focus:ring-2 focus:ring-primary/30 focus:outline-none"
+      className="rounded-md focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:outline-none"
     >
       <article className="flex h-[132px] flex-col items-start rounded-md border border-border px-5 py-4 transition-colors hover:bg-muted/50">
         <div className="flex h-[101px] w-full flex-col gap-0.5">
