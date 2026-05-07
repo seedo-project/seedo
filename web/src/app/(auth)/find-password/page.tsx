@@ -22,15 +22,21 @@ export default function FindPasswordPage() {
     if (!isValidEmail || submitting) return;
     setSubmitting(true);
     setErrorMsg(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    setSubmitting(false);
-    if (error) {
-      setErrorMsg(error.message);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) {
+        setErrorMsg(error.message);
+        setStatus("error");
+        return;
+      }
+      setStatus("sent");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "알 수 없는 오류");
       setStatus("error");
-      return;
+    } finally {
+      setSubmitting(false);
     }
-    setStatus("sent");
   };
 
   return (
@@ -66,10 +72,14 @@ export default function FindPasswordPage() {
           </p>
 
           <div className="flex w-full items-center justify-between py-5">
-            <span className="text-base font-semibold leading-[1.5] tracking-[-0.4px] text-foreground">
+            <label
+              htmlFor="email"
+              className="text-base font-semibold leading-[1.5] tracking-[-0.4px] text-foreground"
+            >
               아이디(이메일)
-            </span>
+            </label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -80,12 +90,19 @@ export default function FindPasswordPage() {
           </div>
 
           {status === "sent" && (
-            <p className="w-full pb-2 text-center text-sm text-muted-foreground">
+            <p
+              aria-live="polite"
+              className="w-full pb-2 text-center text-sm text-muted-foreground"
+            >
               이메일로 비밀번호 재설정 링크를 보냈습니다.
             </p>
           )}
           {status === "error" && errorMsg && (
-            <p className="w-full pb-2 text-center text-sm text-destructive">
+            <p
+              role="alert"
+              aria-live="assertive"
+              className="w-full pb-2 text-center text-sm text-destructive"
+            >
               {errorMsg}
             </p>
           )}
