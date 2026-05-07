@@ -37,7 +37,10 @@ export function IdeaFeed({ ideas }: { ideas: Idea[] }) {
         </div>
         <button
           type="button"
-          className="flex h-12 items-center gap-2 rounded-full bg-primary px-6 text-sm leading-[1.3] font-semibold tracking-[-0.35px] text-primary-foreground shadow-md hover:bg-primary/90"
+          disabled
+          aria-disabled="true"
+          title="랜덤 아이디어 보기 — 준비 중"
+          className="flex h-12 cursor-not-allowed items-center gap-2 rounded-full bg-primary px-6 text-sm leading-[1.3] font-semibold tracking-[-0.35px] text-primary-foreground opacity-50 shadow-md"
         >
           <Shuffle className="size-6" aria-hidden />
           랜덤 아이디어 보기?
@@ -56,9 +59,11 @@ export function IdeaFeed({ ideas }: { ideas: Idea[] }) {
 
       <button
         type="button"
+        disabled
+        aria-disabled="true"
         aria-label="아이디어 작성"
         title="아이디어 작성 — 준비 중 (#16)"
-        className="fixed right-16 bottom-16 flex size-[72px] items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
+        className="fixed right-16 bottom-16 flex size-[72px] cursor-not-allowed items-center justify-center rounded-full bg-primary text-primary-foreground opacity-50 shadow-lg"
       >
         <Plus className="size-9" aria-hidden />
       </button>
