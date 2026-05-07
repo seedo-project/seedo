@@ -304,7 +304,7 @@ function InfoStep({ marketingConsent }: { marketingConsent: boolean }) {
           <PasswordInput
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="8-15자"
+            placeholder="8-15자의 영문/숫자 또는 특수문자 조합"
             autoComplete="new-password"
           />
         </FieldRow>

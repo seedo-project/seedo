@@ -87,7 +87,7 @@ export function LoginForm() {
           href="/find-password"
           className="text-sm font-medium text-muted-foreground hover:text-foreground"
         >
-          아이디/비밀번호 찾기
+          비밀번호 찾기
         </a>
       </div>
 
