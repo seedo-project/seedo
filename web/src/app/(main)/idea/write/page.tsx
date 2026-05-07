@@ -17,7 +17,13 @@ export default function IdeaWritePage() {
         <h1 className="text-2xl leading-[1.5] font-medium tracking-[-0.6px] text-foreground">
           아이디어가 있으신가요?
         </h1>
-        <div className="flex h-12 w-full items-center justify-between rounded-full border border-input bg-card py-1.5 pr-1.5 pl-5 shadow-md">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSend();
+          }}
+          className="flex h-12 w-full items-center justify-between rounded-full border border-input bg-card py-1.5 pr-1.5 pl-5 shadow-md"
+        >
           <input
             type="text"
             value={message}
@@ -27,15 +33,14 @@ export default function IdeaWritePage() {
             className="flex-1 bg-transparent text-sm leading-[1.5] tracking-[-0.35px] text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
           />
           <button
-            type="button"
-            onClick={handleSend}
+            type="submit"
             disabled={!message.trim()}
             aria-label="보내기"
             className="flex size-9 items-center justify-center rounded-full bg-[#e4e4e7] text-muted-foreground transition-colors enabled:bg-foreground enabled:text-background enabled:hover:bg-[#3f3f46]"
           >
             <ArrowUp className="size-5" aria-hidden />
           </button>
-        </div>
+        </form>
       </div>
     </main>
   );

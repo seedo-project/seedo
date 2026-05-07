@@ -35,6 +35,7 @@ export function IdeaCard({
         tabIndex: 0,
         onClick,
         onKeyDown: (e: KeyboardEvent) => {
+          if (e.repeat) return;
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             onClick();
