@@ -1,6 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 
 import {
@@ -65,15 +66,12 @@ export function BoardView({ posts }: { posts: Post[] }) {
         <h1 className="text-2xl leading-[1.5] font-bold tracking-[-0.6px] text-foreground">
           게시판
         </h1>
-        <button
-          type="button"
-          disabled
-          aria-disabled="true"
-          title="글 작성 기능은 준비 중입니다 (#22)"
-          className="flex h-9 cursor-not-allowed items-center justify-center rounded-md bg-primary px-4 py-2 text-sm leading-[1.3] font-semibold tracking-[-0.35px] text-primary-foreground opacity-50"
+        <Link
+          href="/board/write"
+          className="flex h-9 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm leading-[1.3] font-semibold tracking-[-0.35px] text-primary-foreground hover:bg-primary/90"
         >
           글 작성하기
-        </button>
+        </Link>
       </div>
 
       <div className="mt-12 flex w-full items-center justify-between">
