@@ -101,7 +101,7 @@ function Row({ label, value }: { label: string; value: string }) {
       <span className="text-sm leading-[1.5] font-medium tracking-[-0.35px] text-muted-foreground">
         {label}
       </span>
-      <span className="text-sm leading-[1.5] font-medium tracking-[-0.35px] text-foreground">
+      <span className="ml-4 text-right text-sm leading-[1.5] font-medium tracking-[-0.35px] break-all text-foreground">
         {value}
       </span>
     </div>
