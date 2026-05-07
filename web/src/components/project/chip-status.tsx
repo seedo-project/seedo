@@ -13,8 +13,8 @@ const VARIANTS: Record<
   },
   verifying: {
     label: "검증 중",
-    bg: "bg-amber-100",
-    text: "text-amber-500",
+    bg: "bg-orange-100",
+    text: "text-orange-500",
   },
   completed: {
     label: "완성된 프로젝트",
