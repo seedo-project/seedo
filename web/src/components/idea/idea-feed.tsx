@@ -1,12 +1,22 @@
 "use client";
 
 import { Plus, Search, Shuffle } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { IdeaCard, type Idea } from "./idea-card";
+import {
+  IdeaPurchaseModal,
+  type PurchasableIdea,
+} from "./idea-purchase-modal";
 
 export function IdeaFeed({ ideas }: { ideas: Idea[] }) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [purchaseTarget, setPurchaseTarget] = useState<PurchasableIdea | null>(
+    null,
+  );
 
   const trimmed = searchQuery.trim().toLowerCase();
   const visible = !trimmed
@@ -20,6 +30,18 @@ export function IdeaFeed({ ideas }: { ideas: Idea[] }) {
           i.description.toLowerCase().includes(trimmed)
         );
       });
+
+  const handleCardClick = (idea: Idea) => {
+    if (idea.variant === "purchased") {
+      router.push(`/idea/${idea.id}`);
+      return;
+    }
+    setPurchaseTarget({
+      id: idea.id,
+      tags: idea.tags,
+      priceCredits: idea.priceCredits,
+    });
+  };
 
   return (
     <main className="px-[100px] pt-10 pb-24">
@@ -53,20 +75,24 @@ export function IdeaFeed({ ideas }: { ideas: Idea[] }) {
             검색 결과가 없습니다.
           </div>
         ) : (
-          visible.map((i) => <IdeaCard key={i.id} idea={i} />)
+          visible.map((i) => (
+            <IdeaCard key={i.id} idea={i} onClick={() => handleCardClick(i)} />
+          ))
         )}
       </section>
 
-      <button
-        type="button"
-        disabled
-        aria-disabled="true"
+      <Link
+        href="/idea/write"
         aria-label="아이디어 작성"
-        title="아이디어 작성 — 준비 중 (#16)"
-        className="fixed right-16 bottom-16 flex size-[72px] cursor-not-allowed items-center justify-center rounded-full bg-primary text-primary-foreground opacity-50 shadow-lg"
+        className="fixed right-16 bottom-16 flex size-[72px] items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
       >
         <Plus className="size-9" aria-hidden />
-      </button>
+      </Link>
+
+      <IdeaPurchaseModal
+        idea={purchaseTarget}
+        onClose={() => setPurchaseTarget(null)}
+      />
     </main>
   );
 }

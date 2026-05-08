@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from "react";
 import { Check, Clock, Coins } from "lucide-react";
 
 import { ChipIdea } from "./chip-idea";
@@ -21,13 +22,38 @@ export type Idea =
       purchasedByMe: boolean;
     };
 
-export function IdeaCard({ idea }: { idea: Idea }) {
+export function IdeaCard({
+  idea,
+  onClick,
+}: {
+  idea: Idea;
+  onClick?: () => void;
+}) {
+  const interactive = onClick
+    ? {
+        role: "button" as const,
+        tabIndex: 0,
+        onClick,
+        onKeyDown: (e: KeyboardEvent) => {
+          if (e.repeat) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onClick();
+          }
+        },
+        className: "cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30",
+      }
+    : { className: "" };
+
   if (idea.variant === "purchased") {
     const accent = idea.purchasedByMe
       ? "text-muted-foreground"
       : "text-primary";
     return (
-      <article className="flex h-40 w-full flex-col justify-between rounded-xl bg-primary/5 px-5 py-4">
+      <article
+        {...interactive}
+        className={`flex h-40 w-full flex-col justify-between rounded-xl bg-primary/5 px-5 py-4 ${interactive.className}`}
+      >
         <div className="flex w-full flex-col gap-1">
           <h3 className="line-clamp-1 text-base leading-[1.5] font-semibold tracking-[-0.4px] text-foreground">
             {idea.title}
@@ -47,7 +73,10 @@ export function IdeaCard({ idea }: { idea: Idea }) {
   }
 
   return (
-    <article className="flex h-40 w-full flex-col justify-between rounded-xl border border-border bg-card px-5 py-4">
+    <article
+      {...interactive}
+      className={`flex h-40 w-full flex-col justify-between rounded-xl border border-border bg-card px-5 py-4 ${interactive.className}`}
+    >
       <div className="flex w-full flex-wrap gap-x-2 gap-y-2.5">
         {idea.tags.map((t) => (
           <ChipIdea key={t} label={t} />
