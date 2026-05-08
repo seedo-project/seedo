@@ -1,4 +1,4 @@
-package dev.seedo.user.entity;
+package dev.seedo.user.domain;
 
 import dev.seedo.common.BaseEntity;
 import jakarta.persistence.Column;

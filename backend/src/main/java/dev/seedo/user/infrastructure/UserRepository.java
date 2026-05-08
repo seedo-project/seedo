@@ -1,6 +1,6 @@
-package dev.seedo.user.repository;
+package dev.seedo.user.infrastructure;
 
-import dev.seedo.user.entity.User;
+import dev.seedo.user.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.UUID;

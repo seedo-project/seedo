@@ -16,25 +16,52 @@
 - **빌드: Gradle 8.14.4 wrapper, Groovy DSL** (`build.gradle`, `settings.gradle`) — Kotlin DSL 사용 안 함
 - **언어: Java만** — Kotlin 사용 안 함
 
-## 패키지 레이아웃 (도메인별, 확정)
+## 패키지 레이아웃 — DDD 절충형 (확정)
+
+도메인별 패키지 + 그 안에서 4 레이어로 쪼갠다 (Spring + DDD 친화 절충안). JPA 엔티티 = aggregate root 를 `domain/` 에 두고, 헥사고날의 "domain model ≠ JPA entity" 분리까지는 가지 않는다 (매퍼 보일러플레이트와 `SELECT FOR UPDATE` 흐름의 복잡도 회피).
 
 ```
 dev.seedo
 ├── SeedoApplication.java         ← @SpringBootApplication
-├── config/                       ← SecurityConfig, JwtConfig, WebConfig, ...
-├── auth/                         ← Supabase JWT 검증 필터, CustomPrincipal
-├── common/                       ← BaseEntity, BaseComment(@MappedSuperclass), 글로벌 에러 핸들러
-├── credit/                       ← UserCredit, CreditTransaction
-├── idea/                         ← Idea, IdeaDocument, IdeaPurchase, ChatSession
-├── project/                      ← Project, ProjectMember
-├── reward/                       ← Reward (보상 메타)
-├── post/                         ← Post, PostApplication
-├── ai/                           ← LLM 오케스트레이션 (Anthropic WebClient + Resilience4j)
-├── search/                       ← 임베딩, RAG (OpenAI + pgvector)
-└── admin/                        ← 관리자 액션 (정지/강제 삭제/통계)
+├── config/                       ← SecurityConfig, JwtConfig, WebConfig
+├── common/                       ← BaseEntity, BaseComment, 글로벌 에러 핸들러 (4 레이어 적용 안 함)
+├── auth/                         ← Supabase JWT 검증 + RBAC
+│   └── rbac/
+│       ├── domain/               ← Role, Permission, UserRole, RolePermission
+│       └── infrastructure/       ← *Repository
+├── credit/
+│   ├── domain/                   ← UserCredit (aggregate root), CreditTransaction, CreditType, CreditAmount(VO)
+│   ├── application/              ← ChargeCreditService, ...
+│   ├── infrastructure/           ← UserCreditRepository, CreditTransactionRepository
+│   └── web/                      ← CreditController, DTO
+├── user/                         ← 동일 4 레이어
+├── idea/
+├── project/
+├── reward/
+├── post/
+├── ai/                           ← LLM 오케스트레이션 (선택적 헥사고날 — 외부 통합 격리)
+├── search/                       ← 임베딩, RAG
+└── admin/                        ← 관리자 액션
 ```
 
-도메인 패키지는 안에서 `entity / repository / service / dto / controller` 하위로 분리. 레이어별 패키지(`controllers/`, `services/` 한 묶음)는 쓰지 않는다.
+### 레이어 책임
+
+| 레이어 | 책임 | 의존 |
+|---|---|---|
+| `domain/` | Aggregate root (= JPA `@Entity`), VO, Domain event, 비즈니스 규칙 | 같은/다른 도메인 `domain/`, common. JPA·Hibernate 어노테이션은 허용 |
+| `application/` | 유스케이스 (`@Service @Transactional`). 트랜잭션 경계와 외부 호출 조합 | `domain/`, 자기 `infrastructure/` 또는 port out 인터페이스 |
+| `infrastructure/` | 어댑터: `JpaRepository` 구현, 외부 API 클라이언트, 캐시 | Spring Data JPA, WebClient, Caffeine 등 framework |
+| `web/` | REST Controller, request/response DTO, `@PreAuthorize` | `application/` |
+
+> **방향**: `web → application → domain ← infrastructure`. `domain` 은 `application`/`web`/`infrastructure` 어떤 것도 import 하지 않는다.
+
+### 선택적 헥사고날 — 외부 통합만
+
+LLM·PG·이메일 등 **외부 시스템 통합**은 명시적으로 ports/adapter 패턴으로 격리:
+- `<domain>/application/port/out/XxxClient.java` — 인터페이스 (도메인 어휘로)
+- `<domain>/infrastructure/xxx/XxxWebClientAdapter.java` — 구현 (Resilience4j + WebClient)
+
+DB 는 절충형으로 충분 — Hibernate dirty checking + `@Lock(PESSIMISTIC_WRITE)` 가 §8 트랜잭션 패턴과 잘 맞는다.
 
 > 패키지 루트는 `dev.seedo`. Application 클래스명도 `SeedoApplication`.
 
@@ -171,7 +198,7 @@ OPENAI_API_KEY=...
 ## 새 도메인 추가 시 체크리스트
 
 1. Flyway V<N>__add_<domain>.sql 작성 (테이블 + 인덱스 + 트리거)
-2. `dev.seedo.<domain>/` 패키지 생성, entity/repository/service/controller 분리
+2. `dev.seedo.<domain>/{domain,application,infrastructure,web}` 4 레이어 분리. JPA 엔티티 = `domain/`, JpaRepository = `infrastructure/`, `@Service` = `application/`, `@RestController` = `web/`
 3. 트랜잭션이 있으면 루트 `CLAUDE.md` §8의 트랜잭션 패턴 따름
 4. 권한 필요하면 `permissions` 테이블에 코드 추가하는 마이그레이션 + `@PreAuthorize` 부착
 5. 통합 테스트: 트랜잭션 정합성 + 동시성 한 케이스 이상

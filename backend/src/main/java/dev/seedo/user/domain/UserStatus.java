@@ -1,4 +1,4 @@
-package dev.seedo.user.entity;
+package dev.seedo.user.domain;
 
 public enum UserStatus {
     ACTIVE,

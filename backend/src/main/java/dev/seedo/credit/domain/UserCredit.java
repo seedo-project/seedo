@@ -1,4 +1,4 @@
-package dev.seedo.credit.entity;
+package dev.seedo.credit.domain;
 
 import dev.seedo.common.BaseEntity;
 import jakarta.persistence.Column;
@@ -18,7 +18,7 @@ import java.util.UUID;
  * 잔액 캐시. credit_transactions 합계의 캐시 역할이며 DB 트리거로 자동 갱신되지 않는다.
  * 변경은 반드시 다음 순서로 진행한다 (CLAUDE.md §6.2, §8):
  * <pre>
- *   1) {@link dev.seedo.credit.repository.UserCreditRepository#findByUserId} 로 SELECT FOR UPDATE
+ *   1) {@link dev.seedo.credit.infrastructure.UserCreditRepository#findByUserId} 로 SELECT FOR UPDATE
  *   2) {@link #applyDelta(long)} 로 메모리상 잔액 갱신
  *   3) 같은 @Transactional 안에서 CreditTransaction INSERT (balance_after 동봉)
  * </pre>
@@ -48,15 +48,11 @@ public class UserCredit extends BaseEntity implements Persistable<UUID> {
     }
 
     /**
-     * 잔액에 delta 를 더한다. 결과가 음수면 즉시 실패 (DB CHECK 와 이중 방어).
+     * 잔액에 delta 를 더한다. {@link CreditAmount#balance(long)} 가 음수 결과를 차단한다 (DB CHECK 와 이중 방어).
      * 호출 전 반드시 SELECT FOR UPDATE 로 행 락이 걸려 있어야 한다.
      */
     public void applyDelta(long delta) {
-        long next = this.balance + delta;
-        if (next < 0L) {
-            throw new IllegalStateException("잔액은 음수가 될 수 없습니다: " + next);
-        }
-        this.balance = next;
+        this.balance = CreditAmount.balance(this.balance + delta).value();
     }
 
     @PostLoad

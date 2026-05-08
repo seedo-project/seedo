@@ -1,6 +1,6 @@
-package dev.seedo.credit.repository;
+package dev.seedo.credit.infrastructure;
 
-import dev.seedo.credit.entity.UserCredit;
+import dev.seedo.credit.domain.UserCredit;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;

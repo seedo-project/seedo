@@ -1,4 +1,4 @@
-package dev.seedo.auth.rbac.entity;
+package dev.seedo.auth.rbac.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
