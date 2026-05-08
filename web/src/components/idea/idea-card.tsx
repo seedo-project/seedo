@@ -82,14 +82,22 @@ export function IdeaCard({
           <ChipIdea key={t} label={t} />
         ))}
       </div>
-      <div className="flex items-center gap-2 self-end text-muted-foreground">
-        <Clock className="size-5" aria-hidden />
-        <span className="text-sm leading-[1.5] font-medium tracking-[-0.35px]">
-          {idea.postedAt}
+      <div className="flex items-end gap-2 self-end text-muted-foreground">
+        <span className="flex items-end">
+          <span aria-hidden className="flex size-5 items-center justify-center">
+            <Clock className="size-3.5" />
+          </span>
+          <span className="text-sm leading-[1.5] font-medium tracking-[-0.35px]">
+            {idea.postedAt}
+          </span>
         </span>
-        <Coins className="size-5" aria-hidden />
-        <span className="text-sm leading-[1.5] font-medium tracking-[-0.35px]">
-          {idea.priceCredits} 크레딧
+        <span className="flex items-end">
+          <span aria-hidden className="flex size-5 items-center justify-center">
+            <Coins className="size-3.5" />
+          </span>
+          <span className="text-sm leading-[1.5] font-medium tracking-[-0.35px]">
+            {idea.priceCredits} 크레딧
+          </span>
         </span>
       </div>
     </article>
