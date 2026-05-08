@@ -278,8 +278,8 @@ ANTHROPIC_API_KEY, OPENAI_API_KEY
 
 ## 14. 진행 상태 (자주 stale — 시작점만)
 
-- **현재**: 도메인/ERD 설계 완료 (`docs/`), `backend/` 부트스트랩 완료 (스켈레톤만 — 실제 도메인 코드 0줄). `web/` 미구현.
-- 다음 작업: Flyway V1 (RBAC + 크레딧) → V2 (이상 도메인 + pgvector) → JWT 필터 → `handle_new_user()` 트리거.
+- **현재**: 도메인/ERD 설계 완료 (`docs/`), `backend/` Flyway V1 (RBAC/크레딧) + JPA 엔티티(User·RBAC·크레딧) + V1 invariant 검증 IT 까지. 비즈니스 로직(Service/Controller·JWT 필터)은 아직 0줄. `web/`는 디자인 페이지들이 main 에 진입.
+- 다음 작업: Flyway V2 (이상 도메인 + pgvector) → JWT 필터 → `handle_new_user()` 트리거.
 - 전체 순서: 인프라/인증 → 크레딧/아이디어 → 프로젝트/보상 → 게시판/인터랙션 → 알림/관리자/배포
 
 > 컨벤션·트랜잭션 패턴(§6~§10)은 합의 후에도 유효.
