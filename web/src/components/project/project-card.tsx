@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 import { ChipStatus, type ChipVariant } from "./chip-status";
 
@@ -11,8 +12,14 @@ export type Project = {
   statuses: ChipVariant[];
 };
 
-export function ProjectCard({ project }: { project: Project }) {
-  return (
+export function ProjectCard({
+  project,
+  href,
+}: {
+  project: Project;
+  href?: string;
+}) {
+  const content = (
     <article className="flex items-center gap-5 py-3 pr-5">
       <div className="relative flex size-32 shrink-0 items-end justify-end rounded-lg bg-zinc-100 px-1.5 py-2">
         {project.thumbnailUrl && (
@@ -24,11 +31,7 @@ export function ProjectCard({ project }: { project: Project }) {
             className="rounded-lg object-cover"
           />
         )}
-        <button
-          type="button"
-          aria-label="북마크"
-          className="relative size-6"
-        >
+        <span aria-hidden className="relative size-6">
           <Image
             src="/seedo/icons/bookmark.svg"
             alt=""
@@ -36,7 +39,7 @@ export function ProjectCard({ project }: { project: Project }) {
             sizes="24px"
             className="object-contain"
           />
-        </button>
+        </span>
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -57,4 +60,17 @@ export function ProjectCard({ project }: { project: Project }) {
       </div>
     </article>
   );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="rounded-lg focus:ring-2 focus:ring-primary/30 focus:outline-none"
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return content;
 }
