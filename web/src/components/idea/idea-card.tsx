@@ -1,7 +1,8 @@
 import type { KeyboardEvent } from "react";
-import { Check, Clock, Coins } from "lucide-react";
+import { Check } from "lucide-react";
 
 import { ChipIdea } from "./chip-idea";
+import { ClockIcon, CoinIcon } from "./idea-icons";
 
 export type IdeaVariant = "default" | "purchased";
 
@@ -84,16 +85,16 @@ export function IdeaCard({
       </div>
       <div className="flex items-end gap-2 self-end text-muted-foreground">
         <span className="flex items-end">
-          <span aria-hidden className="flex size-5 items-center justify-center">
-            <Clock className="size-3.5" />
+          <span className="flex size-5 items-center justify-center">
+            <ClockIcon className="size-[13.333px]" />
           </span>
           <span className="text-sm leading-[1.5] font-medium tracking-[-0.35px]">
             {idea.postedAt}
           </span>
         </span>
         <span className="flex items-end">
-          <span aria-hidden className="flex size-5 items-center justify-center">
-            <Coins className="size-3.5" />
+          <span className="flex size-5 items-center justify-center">
+            <CoinIcon className="size-[13.333px]" />
           </span>
           <span className="text-sm leading-[1.5] font-medium tracking-[-0.35px]">
             {idea.priceCredits} 크레딧
