@@ -1,8 +1,8 @@
 package dev.seedo.user;
 
 import dev.seedo.support.AbstractIntegrationTest;
-import dev.seedo.user.entity.User;
-import dev.seedo.user.repository.UserRepository;
+import dev.seedo.user.domain.User;
+import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.Test;

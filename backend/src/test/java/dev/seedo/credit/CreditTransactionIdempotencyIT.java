@@ -1,11 +1,11 @@
 package dev.seedo.credit;
 
-import dev.seedo.credit.entity.CreditTransaction;
-import dev.seedo.credit.entity.CreditType;
-import dev.seedo.credit.repository.CreditTransactionRepository;
+import dev.seedo.credit.domain.CreditTransaction;
+import dev.seedo.credit.domain.CreditType;
+import dev.seedo.credit.infrastructure.CreditTransactionRepository;
 import dev.seedo.support.AbstractIntegrationTest;
-import dev.seedo.user.entity.User;
-import dev.seedo.user.repository.UserRepository;
+import dev.seedo.user.domain.User;
+import dev.seedo.user.infrastructure.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;

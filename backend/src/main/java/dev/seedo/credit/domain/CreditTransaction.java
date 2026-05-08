@@ -1,4 +1,4 @@
-package dev.seedo.credit.entity;
+package dev.seedo.credit.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

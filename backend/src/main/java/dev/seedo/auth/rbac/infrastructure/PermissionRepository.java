@@ -1,6 +1,6 @@
-package dev.seedo.auth.rbac.repository;
+package dev.seedo.auth.rbac.infrastructure;
 
-import dev.seedo.auth.rbac.entity.Permission;
+import dev.seedo.auth.rbac.domain.Permission;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
