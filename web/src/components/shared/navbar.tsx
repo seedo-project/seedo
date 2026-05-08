@@ -18,7 +18,7 @@ export function Navbar() {
   )?.key;
 
   return (
-    <header className="h-[108px] w-full border-b border-[#d4d4d8] px-[100px] py-[25px]">
+    <header className="h-[108px] w-full border-b border-input px-[100px] py-[32px]">
       <div className="flex w-full items-start justify-between pt-5">
         <Link href="/idea" aria-label="Seedo 홈" className="block">
           <Image
@@ -41,7 +41,7 @@ export function Navbar() {
               >
                 <span
                   className={`text-[15px] leading-[1.5] font-bold tracking-[-0.375px] ${
-                    active ? "text-[#27272a]" : "text-[#71717a]"
+                    active ? "text-foreground" : "text-muted-foreground"
                   }`}
                 >
                   {label}

@@ -56,14 +56,14 @@ export function LoginForm() {
             {...register("email")}
             placeholder="아이디"
             autoComplete="username"
-            className="h-12 rounded-md border-zinc-300 px-4 text-sm placeholder:text-zinc-300"
+            className="h-12 rounded-md border-input px-4 text-sm placeholder:text-muted-foreground"
           />
           <Input
             {...register("password")}
             type="password"
             placeholder="비밀번호"
             autoComplete="current-password"
-            className="h-12 rounded-md border-zinc-300 px-4 text-sm placeholder:text-zinc-300"
+            className="h-12 rounded-md border-input px-4 text-sm placeholder:text-muted-foreground"
           />
         </div>
         <Button
@@ -76,7 +76,7 @@ export function LoginForm() {
       </div>
 
       <div className="mt-3 flex items-center justify-between">
-        <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-zinc-500 select-none">
+        <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-muted-foreground select-none">
           <Checkbox
             checked={remember}
             onCheckedChange={(v) => setValue("remember", v === true)}
@@ -85,9 +85,9 @@ export function LoginForm() {
         </label>
         <a
           href="/find-password"
-          className="text-sm font-medium text-zinc-500 hover:text-zinc-700"
+          className="text-sm font-medium text-muted-foreground hover:text-foreground"
         >
-          아이디/비밀번호 찾기
+          비밀번호 찾기
         </a>
       </div>
 
