@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import static dev.seedo.support.AbstractIntegrationTest.SQLSTATE_FOREIGN_KEY_VIOLATION;
+import static dev.seedo.support.AbstractIntegrationTest.assertSqlState;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -33,7 +35,7 @@ class RbacFkRestrictIT extends AbstractIntegrationTest {
         // V1 시드: roles(id=1, code='USER') + role_permissions 매핑 10개
         assertThatThrownBy(() ->
                 em.createNativeQuery("DELETE FROM roles WHERE id = 1").executeUpdate()
-        ).hasMessageContaining("violates foreign key constraint");
+        ).satisfies(t -> assertSqlState(t, SQLSTATE_FOREIGN_KEY_VIOLATION));
     }
 
     @Test
@@ -41,7 +43,7 @@ class RbacFkRestrictIT extends AbstractIntegrationTest {
         // V1 시드: permissions(code='IDEA_CREATE') + role_permissions 매핑
         assertThatThrownBy(() ->
                 em.createNativeQuery("DELETE FROM permissions WHERE code = 'IDEA_CREATE'").executeUpdate()
-        ).hasMessageContaining("violates foreign key constraint");
+        ).satisfies(t -> assertSqlState(t, SQLSTATE_FOREIGN_KEY_VIOLATION));
     }
 
     @Test
@@ -52,7 +54,7 @@ class RbacFkRestrictIT extends AbstractIntegrationTest {
                 em.createNativeQuery("DELETE FROM users WHERE id = CAST(:uid AS uuid)")
                         .setParameter("uid", uid.toString())
                         .executeUpdate()
-        ).hasMessageContaining("violates foreign key constraint");
+        ).satisfies(t -> assertSqlState(t, SQLSTATE_FOREIGN_KEY_VIOLATION));
     }
 
     @Test

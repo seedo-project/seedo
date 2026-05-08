@@ -11,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import static dev.seedo.support.AbstractIntegrationTest.SQLSTATE_CHECK_VIOLATION;
+import static dev.seedo.support.AbstractIntegrationTest.assertSqlState;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -38,7 +40,7 @@ class UserSoftDeleteInvariantIT extends AbstractIntegrationTest {
                         .setParameter("email", "u-" + id + "@test")
                         .setParameter("nick", nick(id))
                         .executeUpdate()
-        ).hasMessageContaining("violates check constraint");
+        ).satisfies(t -> assertSqlState(t, SQLSTATE_CHECK_VIOLATION));
     }
 
     @Test
@@ -52,7 +54,7 @@ class UserSoftDeleteInvariantIT extends AbstractIntegrationTest {
                         .setParameter("email", "u-" + id + "@test")
                         .setParameter("nick", nick(id))
                         .executeUpdate()
-        ).hasMessageContaining("violates check constraint");
+        ).satisfies(t -> assertSqlState(t, SQLSTATE_CHECK_VIOLATION));
     }
 
     @Test
@@ -66,7 +68,7 @@ class UserSoftDeleteInvariantIT extends AbstractIntegrationTest {
                         .setParameter("email", "u-" + id + "@test")
                         .setParameter("nick", nick(id))
                         .executeUpdate()
-        ).hasMessageContaining("violates check constraint");
+        ).satisfies(t -> assertSqlState(t, SQLSTATE_CHECK_VIOLATION));
     }
 
     @Test
@@ -101,7 +103,7 @@ class UserSoftDeleteInvariantIT extends AbstractIntegrationTest {
                                 "UPDATE users SET status = 'DELETED' WHERE id = CAST(:id AS uuid)")
                         .setParameter("id", id.toString())
                         .executeUpdate()
-        ).hasMessageContaining("violates check constraint");
+        ).satisfies(t -> assertSqlState(t, SQLSTATE_CHECK_VIOLATION));
     }
 
     private static String nick(UUID id) {

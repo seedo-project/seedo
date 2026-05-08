@@ -8,11 +8,13 @@ import dev.seedo.user.entity.User;
 import dev.seedo.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import static dev.seedo.support.AbstractIntegrationTest.SQLSTATE_CHECK_VIOLATION;
+import static dev.seedo.support.AbstractIntegrationTest.SQLSTATE_UNIQUE_VIOLATION;
+import static dev.seedo.support.AbstractIntegrationTest.assertSqlState;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -41,7 +43,7 @@ class CreditTransactionIdempotencyIT extends AbstractIntegrationTest {
                 txRepo.saveAndFlush(
                         CreditTransaction.of(uid, 100, CreditType.CHARGE, 200, "PG_PAYMENT", paymentId)
                 )
-        ).isInstanceOf(DataIntegrityViolationException.class);
+        ).satisfies(t -> assertSqlState(t, SQLSTATE_UNIQUE_VIOLATION));
     }
 
     @Test
@@ -62,7 +64,7 @@ class CreditTransactionIdempotencyIT extends AbstractIntegrationTest {
                 txRepo.saveAndFlush(
                         CreditTransaction.of(uid, 100, CreditType.CHARGE, 100, "PG_PAYMENT", null)
                 )
-        ).isInstanceOf(DataIntegrityViolationException.class);
+        ).satisfies(t -> assertSqlState(t, SQLSTATE_CHECK_VIOLATION));
     }
 
     private UUID createUser() {

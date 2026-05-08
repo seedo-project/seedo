@@ -8,11 +8,12 @@ import dev.seedo.user.entity.User;
 import dev.seedo.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import static dev.seedo.support.AbstractIntegrationTest.SQLSTATE_CHECK_VIOLATION;
+import static dev.seedo.support.AbstractIntegrationTest.assertSqlState;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -39,7 +40,7 @@ class CreditTransactionAmountSignIT extends AbstractIntegrationTest {
                 txRepo.saveAndFlush(
                         CreditTransaction.of(uid, -100, CreditType.CHARGE, 0, "PG_PAYMENT", "p-" + UUID.randomUUID())
                 )
-        ).isInstanceOf(DataIntegrityViolationException.class);
+        ).satisfies(t -> assertSqlState(t, SQLSTATE_CHECK_VIOLATION));
     }
 
     @Test
@@ -49,7 +50,7 @@ class CreditTransactionAmountSignIT extends AbstractIntegrationTest {
                 txRepo.saveAndFlush(
                         CreditTransaction.of(uid, 50, CreditType.SPEND, 100, "IDEA_PURCHASE", "i-" + UUID.randomUUID())
                 )
-        ).isInstanceOf(DataIntegrityViolationException.class);
+        ).satisfies(t -> assertSqlState(t, SQLSTATE_CHECK_VIOLATION));
     }
 
     @Test
@@ -60,7 +61,7 @@ class CreditTransactionAmountSignIT extends AbstractIntegrationTest {
                 txRepo.saveAndFlush(
                         CreditTransaction.of(uid, -20, CreditType.REFUND, 0, "PG_PAYMENT", "r-" + UUID.randomUUID())
                 )
-        ).isInstanceOf(DataIntegrityViolationException.class);
+        ).satisfies(t -> assertSqlState(t, SQLSTATE_CHECK_VIOLATION));
     }
 
     @Test
@@ -68,7 +69,7 @@ class CreditTransactionAmountSignIT extends AbstractIntegrationTest {
         UUID uid = createUser();
         assertThatThrownBy(() ->
                 txRepo.saveAndFlush(CreditTransaction.adjust(uid, 0, 0, "no-op"))
-        ).isInstanceOf(DataIntegrityViolationException.class);
+        ).satisfies(t -> assertSqlState(t, SQLSTATE_CHECK_VIOLATION));
     }
 
     @Test

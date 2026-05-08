@@ -14,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import static dev.seedo.support.AbstractIntegrationTest.SQLSTATE_RAISE_EXCEPTION;
+import static dev.seedo.support.AbstractIntegrationTest.assertSqlState;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
@@ -43,7 +45,7 @@ class CreditTransactionAppendOnlyIT extends AbstractIntegrationTest {
                 em.createNativeQuery("UPDATE credit_transactions SET description = 'tampered' WHERE id = :id")
                         .setParameter("id", tx.getId())
                         .executeUpdate()
-        ).hasMessageContaining("append-only");
+        ).satisfies(t -> assertSqlState(t, SQLSTATE_RAISE_EXCEPTION));
     }
 
     @Test
@@ -56,7 +58,7 @@ class CreditTransactionAppendOnlyIT extends AbstractIntegrationTest {
         assertThatThrownBy(() -> {
             txRepo.delete(tx);
             txRepo.flush();
-        }).hasMessageContaining("append-only");
+        }).satisfies(t -> assertSqlState(t, SQLSTATE_RAISE_EXCEPTION));
     }
 
     private UUID createUser() {
