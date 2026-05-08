@@ -62,7 +62,7 @@ export function IdeaPurchaseModal({
           onClick={handlePurchase}
           className="flex h-12 items-center justify-center gap-2 self-center rounded-md bg-foreground px-6 text-sm leading-[1.3] font-semibold tracking-[-0.35px] text-background hover:bg-[#3f3f46]"
         >
-          <CoinIcon className="size-3" />
+          <CoinIcon className="size-3 text-yellow-400" />
           {idea?.priceCredits ?? 0} 크레딧 결제
         </button>
       </DialogContent>
