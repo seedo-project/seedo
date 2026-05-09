@@ -53,6 +53,10 @@ public class Idea extends BaseEntity {
     }
 
     public Idea(UUID authorId, int priceCredits, int rewardCredits) {
+        if (priceCredits < 0 || rewardCredits < 0) {
+            throw new IllegalArgumentException(
+                    "credits must be non-negative: price=" + priceCredits + ", reward=" + rewardCredits);
+        }
         this.authorId = authorId;
         this.priceCredits = priceCredits;
         this.rewardCredits = rewardCredits;
@@ -60,15 +64,24 @@ public class Idea extends BaseEntity {
     }
 
     public void publish() {
+        if (status != IdeaStatus.DRAFT) {
+            throw new IllegalStateException("publish requires DRAFT, was " + status);
+        }
         this.status = IdeaStatus.PUBLISHED;
     }
 
     public void archive() {
+        if (status != IdeaStatus.PUBLISHED) {
+            throw new IllegalStateException("archive requires PUBLISHED, was " + status);
+        }
         this.status = IdeaStatus.ARCHIVED;
     }
 
     /** 소프트삭제 — DB CHECK ((status='DELETED') = (deleted_at IS NOT NULL)) 와 짝을 이룬다. */
     public void softDelete() {
+        if (status == IdeaStatus.DELETED) {
+            throw new IllegalStateException("already DELETED");
+        }
         this.status = IdeaStatus.DELETED;
         this.deletedAt = OffsetDateTime.now(ZoneOffset.UTC);
     }

@@ -56,12 +56,18 @@ public class IdeaChatSession extends BaseEntity {
 
     /** finalize 트랜잭션 끝 — idea 가 만들어진 후 호출 (CLAUDE.md §8.4). */
     public void finalize(Long ideaId) {
+        if (status != ChatSessionStatus.IN_PROGRESS) {
+            throw new IllegalStateException("finalize requires IN_PROGRESS, was " + status);
+        }
         this.ideaId = ideaId;
         this.status = ChatSessionStatus.FINALIZED;
         this.finalizedAt = OffsetDateTime.now(ZoneOffset.UTC);
     }
 
     public void abandon() {
+        if (status != ChatSessionStatus.IN_PROGRESS) {
+            throw new IllegalStateException("abandon requires IN_PROGRESS, was " + status);
+        }
         this.status = ChatSessionStatus.ABANDONED;
         this.abandonedAt = OffsetDateTime.now(ZoneOffset.UTC);
     }

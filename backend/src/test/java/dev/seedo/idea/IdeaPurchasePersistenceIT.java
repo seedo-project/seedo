@@ -12,6 +12,8 @@ import dev.seedo.idea.infrastructure.IdeaRepository;
 import dev.seedo.support.AbstractIntegrationTest;
 import dev.seedo.user.domain.User;
 import dev.seedo.user.infrastructure.UserRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +43,9 @@ class IdeaPurchasePersistenceIT extends AbstractIntegrationTest {
     @Autowired
     private IdeaPurchaseRepository purchaseRepo;
 
+    @PersistenceContext
+    private EntityManager em;
+
     @Test
     void save_purchase_round_trip() {
         UUID author = createUser();
@@ -53,6 +58,8 @@ class IdeaPurchasePersistenceIT extends AbstractIntegrationTest {
 
         IdeaPurchase purchase = purchaseRepo.saveAndFlush(
                 new IdeaPurchase(idea.getId(), buyer, doc.getId(), tx.getId()));
+
+        em.clear();
 
         IdeaPurchase reloaded = purchaseRepo.findById(purchase.getId()).orElseThrow();
         assertThat(reloaded.getIdeaId()).isEqualTo(idea.getId());
