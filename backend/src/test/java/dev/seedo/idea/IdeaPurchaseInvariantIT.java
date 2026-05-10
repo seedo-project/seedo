@@ -4,7 +4,7 @@ import dev.seedo.credit.domain.CreditTransaction;
 import dev.seedo.credit.domain.CreditType;
 import dev.seedo.credit.infrastructure.CreditTransactionRepository;
 import dev.seedo.support.AbstractIntegrationTest;
-import dev.seedo.user.domain.User;
+import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -38,7 +38,7 @@ class IdeaPurchaseInvariantIT extends AbstractIntegrationTest {
 
     @Test
     void self_purchase_blocked_by_trigger() {
-        UUID author = createUser();
+        UUID author = UserFixture.create(userRepo);
         long ideaId = createIdea(author);
         long docId = createDocument(ideaId, 1);
         long txId = spendTransaction(author);
@@ -57,8 +57,8 @@ class IdeaPurchaseInvariantIT extends AbstractIntegrationTest {
 
     @Test
     void duplicate_idea_buyer_blocked() {
-        UUID author = createUser();
-        UUID buyer = createUser();
+        UUID author = UserFixture.create(userRepo);
+        UUID buyer = UserFixture.create(userRepo);
         long ideaId = createIdea(author);
         long docId = createDocument(ideaId, 1);
         long tx1 = spendTransaction(buyer);
@@ -88,8 +88,8 @@ class IdeaPurchaseInvariantIT extends AbstractIntegrationTest {
     @Test
     void duplicate_transaction_blocked() {
         // 동일 credit_transactions 행이 2개 구매를 점하는 것은 부정합 — UNIQUE(transaction_id) 가 차단.
-        UUID author = createUser();
-        UUID buyer = createUser();
+        UUID author = UserFixture.create(userRepo);
+        UUID buyer = UserFixture.create(userRepo);
         long ideaA = createIdea(author);
         long ideaB = createIdea(author);
         long docA = createDocument(ideaA, 1);
@@ -119,8 +119,8 @@ class IdeaPurchaseInvariantIT extends AbstractIntegrationTest {
 
     @Test
     void distinct_buyer_distinct_tx_passes() {
-        UUID author = createUser();
-        UUID buyer = createUser();
+        UUID author = UserFixture.create(userRepo);
+        UUID buyer = UserFixture.create(userRepo);
         long ideaId = createIdea(author);
         long docId = createDocument(ideaId, 1);
         long txId = spendTransaction(buyer);
@@ -135,12 +135,6 @@ class IdeaPurchaseInvariantIT extends AbstractIntegrationTest {
                         .setParameter("t", txId)
                         .executeUpdate()
         ).doesNotThrowAnyException();
-    }
-
-    private UUID createUser() {
-        UUID id = UUID.randomUUID();
-        userRepo.saveAndFlush(new User(id, "u-" + id + "@test", "n-" + id.toString().substring(0, 8)));
-        return id;
     }
 
     private long createIdea(UUID author) {

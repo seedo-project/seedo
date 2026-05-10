@@ -10,7 +10,7 @@ import dev.seedo.idea.infrastructure.IdeaDocumentRepository;
 import dev.seedo.idea.infrastructure.IdeaPurchaseRepository;
 import dev.seedo.idea.infrastructure.IdeaRepository;
 import dev.seedo.support.AbstractIntegrationTest;
-import dev.seedo.user.domain.User;
+import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -48,8 +48,8 @@ class IdeaPurchasePersistenceIT extends AbstractIntegrationTest {
 
     @Test
     void save_purchase_round_trip() {
-        UUID author = createUser();
-        UUID buyer = createUser();
+        UUID author = UserFixture.create(userRepo);
+        UUID buyer = UserFixture.create(userRepo);
         Idea idea = ideaRepo.saveAndFlush(new Idea(author, 10, 5));
         IdeaDocument doc = docRepo.saveAndFlush(new IdeaDocument(idea.getId(), 1, "t", "c"));
         CreditTransaction tx = txRepo.saveAndFlush(
@@ -71,9 +71,9 @@ class IdeaPurchasePersistenceIT extends AbstractIntegrationTest {
 
     @Test
     void exists_by_idea_and_buyer_returns_correctly() {
-        UUID author = createUser();
-        UUID buyer = createUser();
-        UUID otherBuyer = createUser();
+        UUID author = UserFixture.create(userRepo);
+        UUID buyer = UserFixture.create(userRepo);
+        UUID otherBuyer = UserFixture.create(userRepo);
         Idea idea = ideaRepo.saveAndFlush(new Idea(author, 10, 5));
         IdeaDocument doc = docRepo.saveAndFlush(new IdeaDocument(idea.getId(), 1, "t", "c"));
         CreditTransaction tx = txRepo.saveAndFlush(
@@ -86,9 +86,4 @@ class IdeaPurchasePersistenceIT extends AbstractIntegrationTest {
         assertThat(purchaseRepo.existsByIdeaIdAndBuyerId(idea.getId(), otherBuyer)).isFalse();
     }
 
-    private UUID createUser() {
-        UUID id = UUID.randomUUID();
-        userRepo.saveAndFlush(new User(id, "u-" + id + "@test", "n-" + id.toString().substring(0, 8)));
-        return id;
-    }
 }

@@ -2,7 +2,7 @@ package dev.seedo.auth;
 
 import dev.seedo.auth.application.SupabaseAuthoritiesConverter;
 import dev.seedo.support.AbstractIntegrationTest;
-import dev.seedo.user.domain.User;
+import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -35,7 +35,7 @@ class SupabaseAuthoritiesConverterIT extends AbstractIntegrationTest {
 
     @Test
     void valid_sub_with_user_role_returns_authorities() {
-        UUID uid = newUserWithRole(1L);
+        UUID uid = UserFixture.createWithRole(userRepo, em, 1L);
 
         Jwt jwt = Jwt.withTokenValue("token")
                 .header("alg", "HS256")
@@ -79,15 +79,4 @@ class SupabaseAuthoritiesConverterIT extends AbstractIntegrationTest {
         assertThat(converter.convert(jwt)).isEmpty();
     }
 
-    private UUID newUserWithRole(long roleId) {
-        UUID uid = UUID.randomUUID();
-        userRepo.saveAndFlush(new User(uid, "u-" + uid + "@test", "n-" + uid.toString().substring(0, 8)));
-        em.createNativeQuery(
-                        "INSERT INTO user_roles(user_id, role_id) VALUES (CAST(:uid AS uuid), :rid)")
-                .setParameter("uid", uid.toString())
-                .setParameter("rid", roleId)
-                .executeUpdate();
-        em.flush();
-        return uid;
-    }
 }

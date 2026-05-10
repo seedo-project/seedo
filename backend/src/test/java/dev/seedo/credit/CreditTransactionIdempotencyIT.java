@@ -4,7 +4,7 @@ import dev.seedo.credit.domain.CreditTransaction;
 import dev.seedo.credit.domain.CreditType;
 import dev.seedo.credit.infrastructure.CreditTransactionRepository;
 import dev.seedo.support.AbstractIntegrationTest;
-import dev.seedo.user.domain.User;
+import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +33,7 @@ class CreditTransactionIdempotencyIT extends AbstractIntegrationTest {
 
     @Test
     void duplicate_reference_pair_blocked_by_unique_index() {
-        UUID uid = createUser();
+        UUID uid = UserFixture.create(userRepo);
         String paymentId = "pay-" + UUID.randomUUID();
         txRepo.saveAndFlush(
                 CreditTransaction.of(uid, 100, CreditType.CHARGE, 100, "PG_PAYMENT", paymentId)
@@ -49,7 +49,7 @@ class CreditTransactionIdempotencyIT extends AbstractIntegrationTest {
     @Test
     void multiple_null_reference_rows_allowed() {
         // ADJUST 처럼 reference 가 둘 다 NULL 인 row 는 partial UNIQUE 영향 받지 않음
-        UUID uid = createUser();
+        UUID uid = UserFixture.create(userRepo);
         assertThatCode(() -> {
             txRepo.saveAndFlush(CreditTransaction.adjust(uid, 50, 50, "manual fix 1"));
             txRepo.saveAndFlush(CreditTransaction.adjust(uid, -10, 40, "manual fix 2"));
@@ -59,7 +59,7 @@ class CreditTransactionIdempotencyIT extends AbstractIntegrationTest {
     @Test
     void partial_null_reference_blocked_by_check() {
         // reference_type 만 채우고 reference_id 는 NULL → CHECK ((type IS NULL) = (id IS NULL)) 위반
-        UUID uid = createUser();
+        UUID uid = UserFixture.create(userRepo);
         assertThatThrownBy(() ->
                 txRepo.saveAndFlush(
                         CreditTransaction.of(uid, 100, CreditType.CHARGE, 100, "PG_PAYMENT", null)
@@ -67,9 +67,4 @@ class CreditTransactionIdempotencyIT extends AbstractIntegrationTest {
         ).satisfies(t -> assertSqlState(t, SQLSTATE_CHECK_VIOLATION));
     }
 
-    private UUID createUser() {
-        UUID id = UUID.randomUUID();
-        userRepo.saveAndFlush(new User(id, "u-" + id + "@test", "n-" + id.toString().substring(0, 8)));
-        return id;
-    }
 }

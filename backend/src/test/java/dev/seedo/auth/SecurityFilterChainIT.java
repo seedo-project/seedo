@@ -1,7 +1,7 @@
 package dev.seedo.auth;
 
 import dev.seedo.support.AbstractIntegrationTest;
-import dev.seedo.user.domain.User;
+import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -59,7 +59,7 @@ class SecurityFilterChainIT extends AbstractIntegrationTest {
 
     @Test
     void user_role_jwt_passes_user_perm_endpoint() throws Exception {
-        UUID uid = newUserWithRole(1L); // USER
+        UUID uid = UserFixture.createWithRole(userRepo, em, 1L); // USER
         when(jwtDecoder.decode(eq("test-token"))).thenReturn(jwtFor(uid));
 
         mockMvc.perform(get("/api/v1/__test/user-perm").header("Authorization", BEARER))
@@ -68,7 +68,7 @@ class SecurityFilterChainIT extends AbstractIntegrationTest {
 
     @Test
     void user_role_jwt_blocked_from_admin_endpoint() throws Exception {
-        UUID uid = newUserWithRole(1L); // USER 는 PERM_USER_SUSPEND 없음
+        UUID uid = UserFixture.createWithRole(userRepo, em, 1L); // USER 는 PERM_USER_SUSPEND 없음
         when(jwtDecoder.decode(eq("test-token"))).thenReturn(jwtFor(uid));
 
         mockMvc.perform(get("/api/v1/__test/admin-only").header("Authorization", BEARER))
@@ -77,7 +77,7 @@ class SecurityFilterChainIT extends AbstractIntegrationTest {
 
     @Test
     void admin_role_jwt_passes_admin_endpoint() throws Exception {
-        UUID uid = newUserWithRole(2L); // ADMIN
+        UUID uid = UserFixture.createWithRole(userRepo, em, 2L); // ADMIN
         when(jwtDecoder.decode(eq("test-token"))).thenReturn(jwtFor(uid));
 
         mockMvc.perform(get("/api/v1/__test/admin-only").header("Authorization", BEARER))
@@ -102,17 +102,6 @@ class SecurityFilterChainIT extends AbstractIntegrationTest {
                 .build();
     }
 
-    private UUID newUserWithRole(long roleId) {
-        UUID uid = UUID.randomUUID();
-        userRepo.saveAndFlush(new User(uid, "u-" + uid + "@test", "n-" + uid.toString().substring(0, 8)));
-        em.createNativeQuery(
-                        "INSERT INTO user_roles(user_id, role_id) VALUES (CAST(:uid AS uuid), :rid)")
-                .setParameter("uid", uid.toString())
-                .setParameter("rid", roleId)
-                .executeUpdate();
-        em.flush();
-        return uid;
-    }
 
     @RestController
     @RequestMapping("/__test")

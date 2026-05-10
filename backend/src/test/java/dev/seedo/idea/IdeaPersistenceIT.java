@@ -6,7 +6,7 @@ import dev.seedo.idea.domain.IdeaStatus;
 import dev.seedo.idea.infrastructure.IdeaDocumentRepository;
 import dev.seedo.idea.infrastructure.IdeaRepository;
 import dev.seedo.support.AbstractIntegrationTest;
-import dev.seedo.user.domain.User;
+import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +34,7 @@ class IdeaPersistenceIT extends AbstractIntegrationTest {
 
     @Test
     void save_default_idea_round_trip() {
-        UUID author = createUser();
+        UUID author = UserFixture.create(userRepo);
 
         Idea idea = ideaRepo.saveAndFlush(new Idea(author, 10, 5));
         ideaRepo.flush();
@@ -51,7 +51,7 @@ class IdeaPersistenceIT extends AbstractIntegrationTest {
 
     @Test
     void state_transitions_persist() {
-        UUID author = createUser();
+        UUID author = UserFixture.create(userRepo);
         Idea idea = ideaRepo.saveAndFlush(new Idea(author, 10, 5));
 
         idea.publish();
@@ -72,7 +72,7 @@ class IdeaPersistenceIT extends AbstractIntegrationTest {
     @Test
     void document_save_and_current_version_pointer() {
         // V2 finalize 시퀀스 모사 (§8.4): idea + doc INSERT → ideas.current_version_id UPDATE
-        UUID author = createUser();
+        UUID author = UserFixture.create(userRepo);
         Idea idea = ideaRepo.saveAndFlush(new Idea(author, 10, 5));
 
         IdeaDocument doc = docRepo.saveAndFlush(
@@ -94,7 +94,7 @@ class IdeaPersistenceIT extends AbstractIntegrationTest {
 
     @Test
     void next_version_query_returns_max() {
-        UUID author = createUser();
+        UUID author = UserFixture.create(userRepo);
         Idea idea = ideaRepo.saveAndFlush(new Idea(author, 10, 5));
 
         docRepo.saveAndFlush(new IdeaDocument(idea.getId(), 1, "v1", "c1"));
@@ -107,7 +107,7 @@ class IdeaPersistenceIT extends AbstractIntegrationTest {
 
     @Test
     void find_by_id_for_update_returns_idea() {
-        UUID author = createUser();
+        UUID author = UserFixture.create(userRepo);
         Idea idea = ideaRepo.saveAndFlush(new Idea(author, 10, 5));
 
         Idea locked = ideaRepo.findByIdForUpdate(idea.getId()).orElseThrow();
@@ -115,9 +115,4 @@ class IdeaPersistenceIT extends AbstractIntegrationTest {
         // 락 자체는 트랜잭션 안에서만 의미 있음 — 동시성 검증은 별도 IT 가 필요하면 추가
     }
 
-    private UUID createUser() {
-        UUID id = UUID.randomUUID();
-        userRepo.saveAndFlush(new User(id, "u-" + id + "@test", "n-" + id.toString().substring(0, 8)));
-        return id;
-    }
 }

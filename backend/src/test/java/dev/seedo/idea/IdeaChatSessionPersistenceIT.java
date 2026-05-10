@@ -9,7 +9,7 @@ import dev.seedo.idea.infrastructure.IdeaChatMessageRepository;
 import dev.seedo.idea.infrastructure.IdeaChatSessionRepository;
 import dev.seedo.idea.infrastructure.IdeaRepository;
 import dev.seedo.support.AbstractIntegrationTest;
-import dev.seedo.user.domain.User;
+import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,7 +41,7 @@ class IdeaChatSessionPersistenceIT extends AbstractIntegrationTest {
 
     @Test
     void in_progress_to_finalized_round_trip() {
-        UUID user = createUser();
+        UUID user = UserFixture.create(userRepo);
         IdeaChatSession session = sessionRepo.saveAndFlush(new IdeaChatSession(user));
         assertThat(session.getStatus()).isEqualTo(ChatSessionStatus.IN_PROGRESS);
 
@@ -58,7 +58,7 @@ class IdeaChatSessionPersistenceIT extends AbstractIntegrationTest {
 
     @Test
     void abandoned_round_trip() {
-        UUID user = createUser();
+        UUID user = UserFixture.create(userRepo);
         IdeaChatSession session = sessionRepo.saveAndFlush(new IdeaChatSession(user));
 
         session.abandon();
@@ -73,7 +73,7 @@ class IdeaChatSessionPersistenceIT extends AbstractIntegrationTest {
 
     @Test
     void messages_persist_with_role() {
-        UUID user = createUser();
+        UUID user = UserFixture.create(userRepo);
         IdeaChatSession session = sessionRepo.saveAndFlush(new IdeaChatSession(user));
 
         IdeaChatMessage userMsg = messageRepo.saveAndFlush(
@@ -87,9 +87,4 @@ class IdeaChatSessionPersistenceIT extends AbstractIntegrationTest {
                 .isEqualTo(ChatMessageRole.ASSISTANT);
     }
 
-    private UUID createUser() {
-        UUID id = UUID.randomUUID();
-        userRepo.saveAndFlush(new User(id, "u-" + id + "@test", "n-" + id.toString().substring(0, 8)));
-        return id;
-    }
 }

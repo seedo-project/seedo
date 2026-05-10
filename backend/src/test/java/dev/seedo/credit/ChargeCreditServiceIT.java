@@ -5,10 +5,9 @@ import dev.seedo.credit.application.ChargeCreditService;
 import dev.seedo.credit.application.ChargeResult;
 import dev.seedo.credit.application.InsufficientCreditException;
 import dev.seedo.credit.domain.CreditType;
-import dev.seedo.credit.domain.UserCredit;
 import dev.seedo.credit.infrastructure.UserCreditRepository;
 import dev.seedo.support.AbstractIntegrationTest;
-import dev.seedo.user.domain.User;
+import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -159,15 +158,9 @@ class ChargeCreditServiceIT extends AbstractIntegrationTest {
     }
 
     private UUID setupUserWithCredit(long initialBalance) {
-        UUID id = UUID.randomUUID();
         return tx.execute(status -> {
-            userRepo.saveAndFlush(new User(
-                    id, "u-" + id + "@test", "n-" + id.toString().substring(0, 8)));
-            UserCredit credit = new UserCredit(id);
-            if (initialBalance > 0) {
-                credit.applyDelta(initialBalance);
-            }
-            creditRepo.saveAndFlush(credit);
+            UUID id = UserFixture.create(userRepo);
+            UserFixture.grantCredit(creditRepo, id, initialBalance);
             return id;
         });
     }

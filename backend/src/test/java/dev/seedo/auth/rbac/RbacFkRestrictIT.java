@@ -1,7 +1,7 @@
 package dev.seedo.auth.rbac;
 
 import dev.seedo.support.AbstractIntegrationTest;
-import dev.seedo.user.domain.User;
+import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -48,7 +48,7 @@ class RbacFkRestrictIT extends AbstractIntegrationTest {
 
     @Test
     void delete_user_referenced_by_user_roles_blocked() {
-        UUID uid = newUserWithRole();
+        UUID uid = UserFixture.createWithRole(userRepo, em, 1L);
 
         assertThatThrownBy(() ->
                 em.createNativeQuery("DELETE FROM users WHERE id = CAST(:uid AS uuid)")
@@ -59,7 +59,7 @@ class RbacFkRestrictIT extends AbstractIntegrationTest {
 
     @Test
     void delete_user_after_clearing_user_roles_succeeds() {
-        UUID uid = newUserWithRole();
+        UUID uid = UserFixture.createWithRole(userRepo, em, 1L);
 
         em.createNativeQuery("DELETE FROM user_roles WHERE user_id = CAST(:uid AS uuid)")
                 .setParameter("uid", uid.toString())
@@ -72,14 +72,4 @@ class RbacFkRestrictIT extends AbstractIntegrationTest {
         assertThat(affected).isEqualTo(1);
     }
 
-    private UUID newUserWithRole() {
-        UUID uid = UUID.randomUUID();
-        userRepo.saveAndFlush(new User(uid, "u-" + uid + "@test", "n-" + uid.toString().substring(0, 8)));
-        em.createNativeQuery(
-                        "INSERT INTO user_roles(user_id, role_id) VALUES (CAST(:uid AS uuid), 1)")
-                .setParameter("uid", uid.toString())
-                .executeUpdate();
-        em.flush();
-        return uid;
-    }
 }
