@@ -63,7 +63,9 @@ public class IdeaExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleDataIntegrity(DataIntegrityViolationException e) {
         if (isIdeaPurchaseUniqueViolation(e)) {
-            return error(HttpStatus.CONFLICT, "duplicate purchase blocked at db");
+            // AlreadyPurchasedException 경로와 동일 메시지 — 클라이언트는 race 경로인지 사전 체크 경로인지
+            // 구분할 필요 없이 같은 시나리오로 처리.
+            return error(HttpStatus.CONFLICT, "already purchased");
         }
         // 그 외 무결성 위반은 다시 던져 Spring 기본 500 매핑 + 원본 스택트레이스 보존.
         throw e;
