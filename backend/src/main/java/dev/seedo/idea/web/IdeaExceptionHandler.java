@@ -1,5 +1,6 @@
 package dev.seedo.idea.web;
 
+import dev.seedo.common.web.ApiResponse;
 import dev.seedo.credit.application.InsufficientCreditException;
 import dev.seedo.idea.application.AlreadyPurchasedException;
 import dev.seedo.idea.application.IdeaNotFoundException;
@@ -8,7 +9,6 @@ import dev.seedo.idea.application.SelfPurchaseException;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -24,32 +24,34 @@ import java.sql.SQLException;
  *
  * <p>{@link InsufficientCreditException} 은 credit 모듈 예외지만 idea 구매 흐름에서만 사용자에게 노출되므로
  * 여기서 같이 매핑. 향후 SPEND 호출하는 다른 도메인이 생기면 별도 advice 또는 공통 advice 로 분리.
+ *
+ * <p>응답 형태는 {@link ApiResponse#error(String)} — 성공 응답과 동일한 봉투.
  */
 @ControllerAdvice(basePackages = "dev.seedo.idea.web")
 public class IdeaExceptionHandler {
 
     @ExceptionHandler(IdeaNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ProblemDetail handleNotFound(IdeaNotFoundException e) {
-        return problem(HttpStatus.NOT_FOUND, "Idea Not Found", e.getMessage());
+    public ApiResponse<Void> handleNotFound(IdeaNotFoundException e) {
+        return ApiResponse.error(e.getMessage());
     }
 
     @ExceptionHandler(AlreadyPurchasedException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
-    public ProblemDetail handleAlreadyPurchased(AlreadyPurchasedException e) {
-        return problem(HttpStatus.CONFLICT, "Already Purchased", e.getMessage());
+    public ApiResponse<Void> handleAlreadyPurchased(AlreadyPurchasedException e) {
+        return ApiResponse.error(e.getMessage());
     }
 
     @ExceptionHandler({IdeaNotPurchasableException.class, SelfPurchaseException.class})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ProblemDetail handleNotPurchasable(RuntimeException e) {
-        return problem(HttpStatus.BAD_REQUEST, "Not Purchasable", e.getMessage());
+    public ApiResponse<Void> handleNotPurchasable(RuntimeException e) {
+        return ApiResponse.error(e.getMessage());
     }
 
     @ExceptionHandler(InsufficientCreditException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ProblemDetail handleInsufficientCredit(InsufficientCreditException e) {
-        return problem(HttpStatus.BAD_REQUEST, "Insufficient Credit", e.getMessage());
+    public ApiResponse<Void> handleInsufficientCredit(InsufficientCreditException e) {
+        return ApiResponse.error(e.getMessage());
     }
 
     /**
@@ -61,10 +63,10 @@ public class IdeaExceptionHandler {
      * 시나리오에서 발생하므로 같은 409 매핑.
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ProblemDetail handleDataIntegrity(DataIntegrityViolationException e) {
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ApiResponse<Void> handleDataIntegrity(DataIntegrityViolationException e) {
         if (isIdeaPurchaseUniqueViolation(e)) {
-            ProblemDetail pd = problem(HttpStatus.CONFLICT, "Conflict", "duplicate purchase blocked at db");
-            return pd;
+            return ApiResponse.error("duplicate purchase blocked at db");
         }
         // 그 외 무결성 위반은 다시 던져 Spring 기본 500 매핑 + 원본 스택트레이스 보존.
         throw e;
@@ -80,12 +82,5 @@ public class IdeaExceptionHandler {
         }
         String msg = sqlEx.getMessage();
         return msg != null && msg.contains("idea_purchases");
-    }
-
-    private ProblemDetail problem(HttpStatus status, String title, String detail) {
-        ProblemDetail pd = ProblemDetail.forStatus(status);
-        pd.setTitle(title);
-        pd.setDetail(detail);
-        return pd;
     }
 }

@@ -53,7 +53,7 @@ class SecurityFilterChainIT extends AbstractIntegrationTest {
 
     @Test
     void no_authorization_header_returns_401() throws Exception {
-        mockMvc.perform(get("/__test/any"))
+        mockMvc.perform(get("/api/v1/__test/any"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -62,7 +62,7 @@ class SecurityFilterChainIT extends AbstractIntegrationTest {
         UUID uid = newUserWithRole(1L); // USER
         when(jwtDecoder.decode(eq("test-token"))).thenReturn(jwtFor(uid));
 
-        mockMvc.perform(get("/__test/user-perm").header("Authorization", BEARER))
+        mockMvc.perform(get("/api/v1/__test/user-perm").header("Authorization", BEARER))
                 .andExpect(status().isOk());
     }
 
@@ -71,7 +71,7 @@ class SecurityFilterChainIT extends AbstractIntegrationTest {
         UUID uid = newUserWithRole(1L); // USER 는 PERM_USER_SUSPEND 없음
         when(jwtDecoder.decode(eq("test-token"))).thenReturn(jwtFor(uid));
 
-        mockMvc.perform(get("/__test/admin-only").header("Authorization", BEARER))
+        mockMvc.perform(get("/api/v1/__test/admin-only").header("Authorization", BEARER))
                 .andExpect(status().isForbidden());
     }
 
@@ -80,7 +80,7 @@ class SecurityFilterChainIT extends AbstractIntegrationTest {
         UUID uid = newUserWithRole(2L); // ADMIN
         when(jwtDecoder.decode(eq("test-token"))).thenReturn(jwtFor(uid));
 
-        mockMvc.perform(get("/__test/admin-only").header("Authorization", BEARER))
+        mockMvc.perform(get("/api/v1/__test/admin-only").header("Authorization", BEARER))
                 .andExpect(status().isOk());
     }
 
@@ -90,7 +90,7 @@ class SecurityFilterChainIT extends AbstractIntegrationTest {
         UUID uid = UUID.randomUUID();
         when(jwtDecoder.decode(eq("test-token"))).thenReturn(jwtFor(uid));
 
-        mockMvc.perform(get("/__test/user-perm").header("Authorization", BEARER))
+        mockMvc.perform(get("/api/v1/__test/user-perm").header("Authorization", BEARER))
                 .andExpect(status().isForbidden());
     }
 
