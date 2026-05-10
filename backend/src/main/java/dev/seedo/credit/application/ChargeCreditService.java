@@ -61,7 +61,13 @@ public class ChargeCreditService {
             }
         }
 
-        credit.applyDelta(cmd.amount());
+        long balanceBefore = credit.getBalance();
+        try {
+            credit.applyDelta(cmd.amount());
+        } catch (IllegalArgumentException e) {
+            // CreditAmount.balance() 가 결과 잔액 < 0 이면 throw — 잔액 부족을 typed 예외로 승격.
+            throw new InsufficientCreditException(cmd.userId(), balanceBefore, cmd.amount());
+        }
 
         CreditTransaction tx = txRepo.saveAndFlush(CreditTransaction.of(
                 cmd.userId(),

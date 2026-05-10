@@ -1,5 +1,6 @@
 package dev.seedo.idea;
 
+import dev.seedo.credit.application.InsufficientCreditException;
 import dev.seedo.credit.domain.UserCredit;
 import dev.seedo.credit.infrastructure.UserCreditRepository;
 import dev.seedo.idea.application.AlreadyPurchasedException;
@@ -19,6 +20,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
@@ -115,7 +117,7 @@ class PurchaseIdeaServiceIT extends AbstractIntegrationTest {
         Fixture f = setupPublishedIdea(100, 50L);
 
         assertThatThrownBy(() -> service.purchase(f.ideaId, f.buyer))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(InsufficientCreditException.class);
 
         assertThat(creditRepo.findById(f.buyer).orElseThrow().getBalance()).isEqualTo(50L);
         assertThat(purchaseRepo.existsByIdeaIdAndBuyerId(f.ideaId, f.buyer)).isFalse();
@@ -196,6 +198,11 @@ class PurchaseIdeaServiceIT extends AbstractIntegrationTest {
 
         assertThat(successCount).isEqualTo(1);
         assertThat(errors).hasSize(1);
+        // 패자는 두 가능 경로 중 하나로만 실패해야 한다 — 그 외 (NPE / 다른 5xx) 면 race 가드가 깨진 것.
+        //   (a) 사전 existsByIdeaIdAndBuyerId 가 A commit 후를 본 경우 → AlreadyPurchasedException
+        //   (b) (a) 를 빠져나가 idea_purchases UNIQUE 가 잡은 경우 → DataIntegrityViolationException
+        assertThat(errors.get(0))
+                .isInstanceOfAny(AlreadyPurchasedException.class, DataIntegrityViolationException.class);
         assertThat(creditRepo.findById(f.buyer).orElseThrow().getBalance()).isEqualTo(40L);
 
         @SuppressWarnings("unchecked")

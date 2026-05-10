@@ -67,6 +67,12 @@ public class PurchaseIdeaService {
                     "PUBLISHED idea has no current_version_id: ideaId=" + ideaId);
         }
         int price = idea.getPriceCredits();
+        if (price <= 0) {
+            // V2 CHECK (price_credits >= 0) 가 음수는 차단하지만 0 은 통과 — MVP 는 무료 아이디어 미지원.
+            // 음수가 들어왔다면 데이터 정합성 사고. 어느 쪽이든 5xx 로 처리해 캐시 의존 4xx 매핑 회피.
+            throw new IllegalStateException(
+                    "PUBLISHED idea has invalid price: ideaId=" + ideaId + ", price=" + price);
+        }
 
         ChargeResult charge = chargeService.charge(new ChargeCommand(
                 buyerId,
