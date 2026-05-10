@@ -1,7 +1,7 @@
 package dev.seedo.idea;
 
 import dev.seedo.support.AbstractIntegrationTest;
-import dev.seedo.user.domain.User;
+import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -31,7 +31,7 @@ class IdeaSoftDeleteInvariantIT extends AbstractIntegrationTest {
 
     @Test
     void deleted_status_without_deleted_at_blocked() {
-        UUID author = createUser();
+        UUID author = UserFixture.create(userRepo);
         assertThatThrownBy(() ->
                 em.createNativeQuery(
                                 "INSERT INTO ideas(author_id, status) " +
@@ -43,7 +43,7 @@ class IdeaSoftDeleteInvariantIT extends AbstractIntegrationTest {
 
     @Test
     void draft_with_deleted_at_blocked() {
-        UUID author = createUser();
+        UUID author = UserFixture.create(userRepo);
         assertThatThrownBy(() ->
                 em.createNativeQuery(
                                 "INSERT INTO ideas(author_id, status, deleted_at) " +
@@ -55,7 +55,7 @@ class IdeaSoftDeleteInvariantIT extends AbstractIntegrationTest {
 
     @Test
     void published_with_deleted_at_blocked() {
-        UUID author = createUser();
+        UUID author = UserFixture.create(userRepo);
         assertThatThrownBy(() ->
                 em.createNativeQuery(
                                 "INSERT INTO ideas(author_id, status, deleted_at) " +
@@ -67,7 +67,7 @@ class IdeaSoftDeleteInvariantIT extends AbstractIntegrationTest {
 
     @Test
     void archived_with_deleted_at_blocked() {
-        UUID author = createUser();
+        UUID author = UserFixture.create(userRepo);
         assertThatThrownBy(() ->
                 em.createNativeQuery(
                                 "INSERT INTO ideas(author_id, status, deleted_at) " +
@@ -79,7 +79,7 @@ class IdeaSoftDeleteInvariantIT extends AbstractIntegrationTest {
 
     @Test
     void valid_states_pass() {
-        UUID author = createUser();
+        UUID author = UserFixture.create(userRepo);
         assertThatCode(() -> {
             em.createNativeQuery(
                             "INSERT INTO ideas(author_id, status) " +
@@ -104,9 +104,4 @@ class IdeaSoftDeleteInvariantIT extends AbstractIntegrationTest {
         }).doesNotThrowAnyException();
     }
 
-    private UUID createUser() {
-        UUID id = UUID.randomUUID();
-        userRepo.saveAndFlush(new User(id, "u-" + id + "@test", "n-" + id.toString().substring(0, 8)));
-        return id;
-    }
 }

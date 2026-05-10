@@ -1,7 +1,7 @@
 package dev.seedo.idea;
 
 import dev.seedo.support.AbstractIntegrationTest;
-import dev.seedo.user.domain.User;
+import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -98,8 +98,7 @@ class IdeaDocumentVersionUniqueIT extends AbstractIntegrationTest {
     }
 
     private long createDraftIdea() {
-        UUID author = UUID.randomUUID();
-        userRepo.saveAndFlush(new User(author, "u-" + author + "@test", "n-" + author.toString().substring(0, 8)));
+        UUID author = UserFixture.create(userRepo);
         em.createNativeQuery(
                         "INSERT INTO ideas(author_id) VALUES (CAST(:a AS uuid))")
                 .setParameter("a", author.toString())

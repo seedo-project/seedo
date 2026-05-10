@@ -4,7 +4,7 @@ import dev.seedo.credit.domain.CreditTransaction;
 import dev.seedo.credit.domain.CreditType;
 import dev.seedo.credit.infrastructure.CreditTransactionRepository;
 import dev.seedo.support.AbstractIntegrationTest;
-import dev.seedo.user.domain.User;
+import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -36,7 +36,7 @@ class CreditTransactionAppendOnlyIT extends AbstractIntegrationTest {
 
     @Test
     void update_via_native_query_blocked_by_trigger() {
-        UUID uid = createUser();
+        UUID uid = UserFixture.create(userRepo);
         CreditTransaction tx = txRepo.saveAndFlush(
                 CreditTransaction.of(uid, 100, CreditType.CHARGE, 100, "PG_PAYMENT", "p-" + UUID.randomUUID())
         );
@@ -50,7 +50,7 @@ class CreditTransactionAppendOnlyIT extends AbstractIntegrationTest {
 
     @Test
     void delete_blocked_by_trigger() {
-        UUID uid = createUser();
+        UUID uid = UserFixture.create(userRepo);
         CreditTransaction tx = txRepo.saveAndFlush(
                 CreditTransaction.of(uid, 100, CreditType.CHARGE, 100, "PG_PAYMENT", "p-" + UUID.randomUUID())
         );
@@ -61,9 +61,4 @@ class CreditTransactionAppendOnlyIT extends AbstractIntegrationTest {
         }).satisfies(t -> assertSqlState(t, SQLSTATE_RAISE_EXCEPTION));
     }
 
-    private UUID createUser() {
-        UUID id = UUID.randomUUID();
-        userRepo.saveAndFlush(new User(id, "u-" + id + "@test", "n-" + id.toString().substring(0, 8)));
-        return id;
-    }
 }

@@ -1,7 +1,7 @@
 package dev.seedo.idea;
 
 import dev.seedo.support.AbstractIntegrationTest;
-import dev.seedo.user.domain.User;
+import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -31,7 +31,7 @@ class IdeaCheckConstraintsIT extends AbstractIntegrationTest {
 
     @Test
     void unknown_status_blocked() {
-        UUID author = createUser();
+        UUID author = UserFixture.create(userRepo);
         assertThatThrownBy(() ->
                 em.createNativeQuery(
                                 "INSERT INTO ideas(author_id, status) " +
@@ -43,7 +43,7 @@ class IdeaCheckConstraintsIT extends AbstractIntegrationTest {
 
     @Test
     void negative_price_blocked() {
-        UUID author = createUser();
+        UUID author = UserFixture.create(userRepo);
         assertThatThrownBy(() ->
                 em.createNativeQuery(
                                 "INSERT INTO ideas(author_id, price_credits) " +
@@ -55,7 +55,7 @@ class IdeaCheckConstraintsIT extends AbstractIntegrationTest {
 
     @Test
     void negative_reward_blocked() {
-        UUID author = createUser();
+        UUID author = UserFixture.create(userRepo);
         assertThatThrownBy(() ->
                 em.createNativeQuery(
                                 "INSERT INTO ideas(author_id, reward_credits) " +
@@ -68,7 +68,7 @@ class IdeaCheckConstraintsIT extends AbstractIntegrationTest {
     @Test
     void zero_price_and_reward_pass() {
         // free idea / no reward 도 허용 — CHECK 는 >= 0
-        UUID author = createUser();
+        UUID author = UserFixture.create(userRepo);
         assertThatCode(() ->
                 em.createNativeQuery(
                                 "INSERT INTO ideas(author_id, price_credits, reward_credits) " +
@@ -78,9 +78,4 @@ class IdeaCheckConstraintsIT extends AbstractIntegrationTest {
         ).doesNotThrowAnyException();
     }
 
-    private UUID createUser() {
-        UUID id = UUID.randomUUID();
-        userRepo.saveAndFlush(new User(id, "u-" + id + "@test", "n-" + id.toString().substring(0, 8)));
-        return id;
-    }
 }

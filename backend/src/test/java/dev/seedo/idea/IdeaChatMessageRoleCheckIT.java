@@ -1,7 +1,7 @@
 package dev.seedo.idea;
 
 import dev.seedo.support.AbstractIntegrationTest;
-import dev.seedo.user.domain.User;
+import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -63,8 +63,7 @@ class IdeaChatMessageRoleCheckIT extends AbstractIntegrationTest {
     }
 
     private long createSession() {
-        UUID user = UUID.randomUUID();
-        userRepo.saveAndFlush(new User(user, "u-" + user + "@test", "n-" + user.toString().substring(0, 8)));
+        UUID user = UserFixture.create(userRepo);
         em.createNativeQuery(
                         "INSERT INTO idea_chat_sessions(user_id, status) " +
                                 "VALUES (CAST(:u AS uuid), 'IN_PROGRESS')")

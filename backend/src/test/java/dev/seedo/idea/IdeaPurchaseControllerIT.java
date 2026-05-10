@@ -1,13 +1,11 @@
 package dev.seedo.idea;
 
-import dev.seedo.credit.domain.UserCredit;
 import dev.seedo.credit.infrastructure.UserCreditRepository;
-import dev.seedo.idea.domain.Idea;
-import dev.seedo.idea.domain.IdeaDocument;
 import dev.seedo.idea.infrastructure.IdeaDocumentRepository;
 import dev.seedo.idea.infrastructure.IdeaRepository;
 import dev.seedo.support.AbstractIntegrationTest;
-import dev.seedo.user.domain.User;
+import dev.seedo.support.IdeaFixture;
+import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -114,31 +112,16 @@ class IdeaPurchaseControllerIT extends AbstractIntegrationTest {
     }
 
     private UUID createUser() {
-        UUID id = UUID.randomUUID();
-        userRepo.saveAndFlush(new User(id, "u-" + id + "@test", "n-" + id.toString().substring(0, 8)));
-        return id;
+        return UserFixture.create(userRepo);
     }
 
     private UUID createUserWithUserRoleAndCredit(long initialBalance) {
-        UUID id = createUser();
-        em.createNativeQuery(
-                        "INSERT INTO user_roles(user_id, role_id) VALUES (CAST(:uid AS uuid), 1)")
-                .setParameter("uid", id.toString())
-                .executeUpdate();
-        UserCredit credit = new UserCredit(id);
-        if (initialBalance > 0) {
-            credit.applyDelta(initialBalance);
-        }
-        creditRepo.saveAndFlush(credit);
-        em.flush();
+        UUID id = UserFixture.createWithRole(userRepo, em, 1L);
+        UserFixture.grantCredit(creditRepo, id, initialBalance);
         return id;
     }
 
     private Long setupPublishedIdea(UUID author, int price) {
-        Idea idea = ideaRepo.saveAndFlush(new Idea(author, price, 5));
-        IdeaDocument doc = docRepo.saveAndFlush(new IdeaDocument(idea.getId(), 1, "t", "c"));
-        idea.updateCurrentVersion(doc.getId());
-        idea.publish();
-        return ideaRepo.saveAndFlush(idea).getId();
+        return IdeaFixture.createPublished(ideaRepo, docRepo, author, price, 5).getId();
     }
 }

@@ -2,7 +2,7 @@ package dev.seedo.auth;
 
 import dev.seedo.auth.application.AuthorityLoader;
 import dev.seedo.support.AbstractIntegrationTest;
-import dev.seedo.user.domain.User;
+import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -34,7 +34,7 @@ class AuthorityLoaderIT extends AbstractIntegrationTest {
 
     @Test
     void user_role_grants_ten_permissions_with_perm_prefix() {
-        UUID uid = newUserWithRole(1L); // USER role
+        UUID uid = UserFixture.createWithRole(userRepo, em, 1L); // USER role
 
         Collection<GrantedAuthority> authorities = loader.loadFor(uid);
 
@@ -50,7 +50,7 @@ class AuthorityLoaderIT extends AbstractIntegrationTest {
 
     @Test
     void admin_role_grants_all_fourteen_permissions() {
-        UUID uid = newUserWithRole(2L); // ADMIN role
+        UUID uid = UserFixture.createWithRole(userRepo, em, 2L); // ADMIN role
 
         Collection<GrantedAuthority> authorities = loader.loadFor(uid);
 
@@ -62,8 +62,7 @@ class AuthorityLoaderIT extends AbstractIntegrationTest {
 
     @Test
     void user_without_role_returns_empty() {
-        UUID uid = UUID.randomUUID();
-        userRepo.saveAndFlush(new User(uid, "u-" + uid + "@test", "n-" + uid.toString().substring(0, 8)));
+        UUID uid = UserFixture.create(userRepo);
 
         assertThat(loader.loadFor(uid)).isEmpty();
     }
@@ -74,15 +73,4 @@ class AuthorityLoaderIT extends AbstractIntegrationTest {
         assertThat(loader.loadFor(UUID.randomUUID())).isEmpty();
     }
 
-    private UUID newUserWithRole(long roleId) {
-        UUID uid = UUID.randomUUID();
-        userRepo.saveAndFlush(new User(uid, "u-" + uid + "@test", "n-" + uid.toString().substring(0, 8)));
-        em.createNativeQuery(
-                        "INSERT INTO user_roles(user_id, role_id) VALUES (CAST(:uid AS uuid), :rid)")
-                .setParameter("uid", uid.toString())
-                .setParameter("rid", roleId)
-                .executeUpdate();
-        em.flush();
-        return uid;
-    }
 }

@@ -1,7 +1,6 @@
 package dev.seedo.idea;
 
 import dev.seedo.credit.application.InsufficientCreditException;
-import dev.seedo.credit.domain.UserCredit;
 import dev.seedo.credit.infrastructure.UserCreditRepository;
 import dev.seedo.idea.application.AlreadyPurchasedException;
 import dev.seedo.idea.application.IdeaNotPurchasableException;
@@ -9,12 +8,12 @@ import dev.seedo.idea.application.PurchaseIdeaService;
 import dev.seedo.idea.application.PurchaseResult;
 import dev.seedo.idea.application.SelfPurchaseException;
 import dev.seedo.idea.domain.Idea;
-import dev.seedo.idea.domain.IdeaDocument;
 import dev.seedo.idea.infrastructure.IdeaDocumentRepository;
 import dev.seedo.idea.infrastructure.IdeaPurchaseRepository;
 import dev.seedo.idea.infrastructure.IdeaRepository;
 import dev.seedo.support.AbstractIntegrationTest;
-import dev.seedo.user.domain.User;
+import dev.seedo.support.IdeaFixture;
+import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -94,7 +93,7 @@ class PurchaseIdeaServiceIT extends AbstractIntegrationTest {
     @Test
     void self_purchase_blocked() {
         Fixture f = setupPublishedIdea(10, 50L);
-        creditUser(f.author, 50L);
+        UserFixture.grantCredit(creditRepo, f.author, 50L);
 
         assertThatThrownBy(() -> service.purchase(f.ideaId, f.author))
                 .isInstanceOf(SelfPurchaseException.class);
@@ -125,19 +124,13 @@ class PurchaseIdeaServiceIT extends AbstractIntegrationTest {
 
     @Test
     void concurrent_purchases_by_two_buyers_both_succeed_serialized() throws Exception {
-        UUID author = createUser();
-        UUID b1 = createUser();
-        UUID b2 = createUser();
-        creditUser(b1, 50L);
-        creditUser(b2, 50L);
-        Long ideaId = tx.execute(s -> {
-            Idea idea = ideaRepo.saveAndFlush(new Idea(author, 10, 5));
-            IdeaDocument doc = docRepo.saveAndFlush(new IdeaDocument(idea.getId(), 1, "t", "c"));
-            idea.updateCurrentVersion(doc.getId());
-            idea.publish();
-            ideaRepo.saveAndFlush(idea);
-            return idea.getId();
-        });
+        UUID author = tx.execute(s -> UserFixture.create(userRepo));
+        UUID b1 = tx.execute(s -> UserFixture.create(userRepo));
+        UUID b2 = tx.execute(s -> UserFixture.create(userRepo));
+        tx.execute(s -> { UserFixture.grantCredit(creditRepo, b1, 50L); return null; });
+        tx.execute(s -> { UserFixture.grantCredit(creditRepo, b2, 50L); return null; });
+        Long ideaId = tx.execute(s ->
+                IdeaFixture.createPublished(ideaRepo, docRepo, author, 10, 5).getId());
 
         ExecutorService exec = Executors.newFixedThreadPool(2);
         try {
@@ -218,46 +211,23 @@ class PurchaseIdeaServiceIT extends AbstractIntegrationTest {
     }
 
     private Fixture setupPublishedIdea(int price, long buyerInitialBalance) {
-        UUID author = createUser();
-        UUID buyer = createUser();
-        creditUser(buyer, buyerInitialBalance);
-
         return tx.execute(status -> {
-            Idea idea = ideaRepo.saveAndFlush(new Idea(author, price, 5));
-            IdeaDocument doc = docRepo.saveAndFlush(new IdeaDocument(idea.getId(), 1, "t", "c"));
-            idea.updateCurrentVersion(doc.getId());
-            idea.publish();
-            ideaRepo.saveAndFlush(idea);
-            return new Fixture(author, buyer, idea.getId(), doc.getId());
+            UUID author = UserFixture.create(userRepo);
+            UUID buyer = UserFixture.create(userRepo);
+            UserFixture.grantCredit(creditRepo, buyer, buyerInitialBalance);
+            Idea idea = IdeaFixture.createPublished(ideaRepo, docRepo, author, price, 5);
+            return new Fixture(author, buyer, idea.getId(), idea.getCurrentVersionId());
         });
     }
 
     private Fixture setupDraftIdea(int price, long buyerInitialBalance) {
-        UUID author = createUser();
-        UUID buyer = createUser();
-        creditUser(buyer, buyerInitialBalance);
-
+        // DRAFT 는 status 검증이 documentId 검증보다 먼저라 documentId 셋업 불필요.
         return tx.execute(status -> {
-            Idea idea = ideaRepo.saveAndFlush(new Idea(author, price, 5));
-            IdeaDocument doc = docRepo.saveAndFlush(new IdeaDocument(idea.getId(), 1, "t", "c"));
-            return new Fixture(author, buyer, idea.getId(), doc.getId());
-        });
-    }
-
-    private UUID createUser() {
-        UUID id = UUID.randomUUID();
-        tx.execute(s -> userRepo.saveAndFlush(
-                new User(id, "u-" + id + "@test", "n-" + id.toString().substring(0, 8))));
-        return id;
-    }
-
-    private void creditUser(UUID userId, long balance) {
-        tx.execute(s -> {
-            UserCredit uc = new UserCredit(userId);
-            if (balance > 0) {
-                uc.applyDelta(balance);
-            }
-            return creditRepo.saveAndFlush(uc);
+            UUID author = UserFixture.create(userRepo);
+            UUID buyer = UserFixture.create(userRepo);
+            UserFixture.grantCredit(creditRepo, buyer, buyerInitialBalance);
+            Idea idea = IdeaFixture.createDraft(ideaRepo, author, price, 5);
+            return new Fixture(author, buyer, idea.getId(), null);
         });
     }
 }

@@ -1,7 +1,7 @@
 package dev.seedo.idea;
 
 import dev.seedo.support.AbstractIntegrationTest;
-import dev.seedo.user.domain.User;
+import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -33,7 +33,7 @@ class IdeaChatSessionInvariantIT extends AbstractIntegrationTest {
 
     @Test
     void unknown_status_blocked() {
-        UUID user = createUser();
+        UUID user = UserFixture.create(userRepo);
         assertThatThrownBy(() ->
                 em.createNativeQuery(
                                 "INSERT INTO idea_chat_sessions(user_id, status) " +
@@ -45,7 +45,7 @@ class IdeaChatSessionInvariantIT extends AbstractIntegrationTest {
 
     @Test
     void in_progress_with_idea_id_blocked() {
-        UUID user = createUser();
+        UUID user = UserFixture.create(userRepo);
         long ideaId = createIdea(user);
         assertThatThrownBy(() ->
                 em.createNativeQuery(
@@ -59,7 +59,7 @@ class IdeaChatSessionInvariantIT extends AbstractIntegrationTest {
 
     @Test
     void finalized_without_idea_id_blocked() {
-        UUID user = createUser();
+        UUID user = UserFixture.create(userRepo);
         assertThatThrownBy(() ->
                 em.createNativeQuery(
                                 "INSERT INTO idea_chat_sessions(user_id, status, finalized_at) " +
@@ -71,7 +71,7 @@ class IdeaChatSessionInvariantIT extends AbstractIntegrationTest {
 
     @Test
     void finalized_without_finalized_at_blocked() {
-        UUID user = createUser();
+        UUID user = UserFixture.create(userRepo);
         long ideaId = createIdea(user);
         assertThatThrownBy(() ->
                 em.createNativeQuery(
@@ -85,7 +85,7 @@ class IdeaChatSessionInvariantIT extends AbstractIntegrationTest {
 
     @Test
     void in_progress_with_finalized_at_blocked() {
-        UUID user = createUser();
+        UUID user = UserFixture.create(userRepo);
         assertThatThrownBy(() ->
                 em.createNativeQuery(
                                 "INSERT INTO idea_chat_sessions(user_id, status, finalized_at) " +
@@ -97,7 +97,7 @@ class IdeaChatSessionInvariantIT extends AbstractIntegrationTest {
 
     @Test
     void abandoned_without_abandoned_at_blocked() {
-        UUID user = createUser();
+        UUID user = UserFixture.create(userRepo);
         assertThatThrownBy(() ->
                 em.createNativeQuery(
                                 "INSERT INTO idea_chat_sessions(user_id, status) " +
@@ -109,7 +109,7 @@ class IdeaChatSessionInvariantIT extends AbstractIntegrationTest {
 
     @Test
     void in_progress_with_abandoned_at_blocked() {
-        UUID user = createUser();
+        UUID user = UserFixture.create(userRepo);
         assertThatThrownBy(() ->
                 em.createNativeQuery(
                                 "INSERT INTO idea_chat_sessions(user_id, status, abandoned_at) " +
@@ -121,7 +121,7 @@ class IdeaChatSessionInvariantIT extends AbstractIntegrationTest {
 
     @Test
     void valid_lifecycles_pass() {
-        UUID user = createUser();
+        UUID user = UserFixture.create(userRepo);
         long ideaId = createIdea(user);
         assertThatCode(() -> {
             em.createNativeQuery(
@@ -141,12 +141,6 @@ class IdeaChatSessionInvariantIT extends AbstractIntegrationTest {
                     .setParameter("u", user.toString())
                     .executeUpdate();
         }).doesNotThrowAnyException();
-    }
-
-    private UUID createUser() {
-        UUID id = UUID.randomUUID();
-        userRepo.saveAndFlush(new User(id, "u-" + id + "@test", "n-" + id.toString().substring(0, 8)));
-        return id;
     }
 
     private long createIdea(UUID author) {
