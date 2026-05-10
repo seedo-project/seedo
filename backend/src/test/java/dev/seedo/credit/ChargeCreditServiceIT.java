@@ -3,6 +3,7 @@ package dev.seedo.credit;
 import dev.seedo.credit.application.ChargeCommand;
 import dev.seedo.credit.application.ChargeCreditService;
 import dev.seedo.credit.application.ChargeResult;
+import dev.seedo.credit.application.InsufficientCreditException;
 import dev.seedo.credit.domain.CreditType;
 import dev.seedo.credit.domain.UserCredit;
 import dev.seedo.credit.infrastructure.UserCreditRepository;
@@ -115,7 +116,7 @@ class ChargeCreditServiceIT extends AbstractIntegrationTest {
         assertThatThrownBy(() ->
                 service.charge(new ChargeCommand(
                         uid, -100, CreditType.ADJUST, null, null, "underflow attempt"))
-        ).isInstanceOf(IllegalArgumentException.class);
+        ).isInstanceOf(InsufficientCreditException.class);
 
         long balance = creditRepo.findById(uid).orElseThrow().getBalance();
         assertThat(balance).isEqualTo(50L);
