@@ -74,6 +74,11 @@ public class CreditTransaction {
         return new CreditTransaction(userId, amount, type, balanceAfter, referenceType, referenceId, null);
     }
 
+    public static CreditTransaction of(UUID userId, long amount, CreditType type, long balanceAfter,
+                                       String referenceType, String referenceId, String description) {
+        return new CreditTransaction(userId, amount, type, balanceAfter, referenceType, referenceId, description);
+    }
+
     public static CreditTransaction adjust(UUID userId, long amount, long balanceAfter, String description) {
         return new CreditTransaction(userId, amount, CreditType.ADJUST, balanceAfter, null, null, description);
     }
