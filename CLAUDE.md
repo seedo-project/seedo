@@ -278,8 +278,8 @@ ANTHROPIC_API_KEY, OPENAI_API_KEY
 
 ## 14. 진행 상태 (자주 stale — 시작점만)
 
-- **현재**: 도메인/ERD 설계 완료 (`docs/`), `backend/` Flyway V1 (RBAC/크레딧) + V2 (idea 도메인 + pgvector) + JPA 엔티티(User·RBAC·크레딧) + DDD 4 레이어 패키지 레이아웃 + V1·V2 invariant 검증 IT 까지. idea 도메인 JPA 엔티티·Service/Controller·JWT 필터는 아직 0줄. `web/`는 디자인 페이지들이 main 에 진입.
-- 다음 작업: idea 도메인 JPA 엔티티(`dev.seedo.idea.domain.*`) → JWT 필터 → `handle_new_user()` 트리거.
+- **현재**: 도메인/ERD 설계 완료 (`docs/`), `backend/` Flyway V1+V2 + JPA 엔티티(User·RBAC·크레딧·idea 전체) + 상태 전이 가드 + DDD 4 레이어 + V1·V2 invariant IT + Supabase JWT 인증/RBAC 권한 로딩 필터 (#64) + Flyway V3 (`handle_new_user()` 트리거 + `auth.users` FK, #65) + GitHub Actions backend 테스트 CI (#66) 까지. idea Service/Controller, 크레딧 Service 의 Java 코드는 0줄. `web/`는 디자인 페이지들이 main 에 진입.
+- 다음 작업: 크레딧 충전 (PG webhook + 멱등성, §8.1) → 챗봇 finalize / 아이디어 새 버전 발행 (§8.4) → 아이디어 구매 (§8.2).
 - 전체 순서: 인프라/인증 → 크레딧/아이디어 → 프로젝트/보상 → 게시판/인터랙션 → 알림/관리자/배포
 
 > 컨벤션·트랜잭션 패턴(§6~§10)은 합의 후에도 유효.
