@@ -1,5 +1,6 @@
 package dev.seedo.idea.web;
 
+import dev.seedo.common.web.ApiResponse;
 import dev.seedo.credit.application.InsufficientCreditException;
 import dev.seedo.idea.application.AlreadyPurchasedException;
 import dev.seedo.idea.application.IdeaNotFoundException;
@@ -8,10 +9,9 @@ import dev.seedo.idea.application.SelfPurchaseException;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.sql.SQLException;
 
@@ -24,32 +24,32 @@ import java.sql.SQLException;
  *
  * <p>{@link InsufficientCreditException} 은 credit 모듈 예외지만 idea 구매 흐름에서만 사용자에게 노출되므로
  * 여기서 같이 매핑. 향후 SPEND 호출하는 다른 도메인이 생기면 별도 advice 또는 공통 advice 로 분리.
+ *
+ * <p>응답 형태는 {@link ApiResponse#error(String)} — 성공 응답과 동일한 봉투. 핸들러는 {@code ResponseEntity}
+ * 로 본문 + 상태 코드를 같이 반환한다 (예외 핸들러 + {@code @ResponseStatus} 조합이 본문을 누락시키는
+ * 케이스를 회피).
  */
 @ControllerAdvice(basePackages = "dev.seedo.idea.web")
 public class IdeaExceptionHandler {
 
     @ExceptionHandler(IdeaNotFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ProblemDetail handleNotFound(IdeaNotFoundException e) {
-        return problem(HttpStatus.NOT_FOUND, "Idea Not Found", e.getMessage());
+    public ResponseEntity<ApiResponse<Void>> handleNotFound(IdeaNotFoundException e) {
+        return error(HttpStatus.NOT_FOUND, e.getMessage());
     }
 
     @ExceptionHandler(AlreadyPurchasedException.class)
-    @ResponseStatus(HttpStatus.CONFLICT)
-    public ProblemDetail handleAlreadyPurchased(AlreadyPurchasedException e) {
-        return problem(HttpStatus.CONFLICT, "Already Purchased", e.getMessage());
+    public ResponseEntity<ApiResponse<Void>> handleAlreadyPurchased(AlreadyPurchasedException e) {
+        return error(HttpStatus.CONFLICT, e.getMessage());
     }
 
     @ExceptionHandler({IdeaNotPurchasableException.class, SelfPurchaseException.class})
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ProblemDetail handleNotPurchasable(RuntimeException e) {
-        return problem(HttpStatus.BAD_REQUEST, "Not Purchasable", e.getMessage());
+    public ResponseEntity<ApiResponse<Void>> handleNotPurchasable(RuntimeException e) {
+        return error(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 
     @ExceptionHandler(InsufficientCreditException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ProblemDetail handleInsufficientCredit(InsufficientCreditException e) {
-        return problem(HttpStatus.BAD_REQUEST, "Insufficient Credit", e.getMessage());
+    public ResponseEntity<ApiResponse<Void>> handleInsufficientCredit(InsufficientCreditException e) {
+        return error(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 
     /**
@@ -61,10 +61,11 @@ public class IdeaExceptionHandler {
      * 시나리오에서 발생하므로 같은 409 매핑.
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ProblemDetail handleDataIntegrity(DataIntegrityViolationException e) {
+    public ResponseEntity<ApiResponse<Void>> handleDataIntegrity(DataIntegrityViolationException e) {
         if (isIdeaPurchaseUniqueViolation(e)) {
-            ProblemDetail pd = problem(HttpStatus.CONFLICT, "Conflict", "duplicate purchase blocked at db");
-            return pd;
+            // AlreadyPurchasedException 경로와 동일 메시지 — 클라이언트는 race 경로인지 사전 체크 경로인지
+            // 구분할 필요 없이 같은 시나리오로 처리.
+            return error(HttpStatus.CONFLICT, "already purchased");
         }
         // 그 외 무결성 위반은 다시 던져 Spring 기본 500 매핑 + 원본 스택트레이스 보존.
         throw e;
@@ -82,10 +83,7 @@ public class IdeaExceptionHandler {
         return msg != null && msg.contains("idea_purchases");
     }
 
-    private ProblemDetail problem(HttpStatus status, String title, String detail) {
-        ProblemDetail pd = ProblemDetail.forStatus(status);
-        pd.setTitle(title);
-        pd.setDetail(detail);
-        return pd;
+    private ResponseEntity<ApiResponse<Void>> error(HttpStatus status, String message) {
+        return ResponseEntity.status(status).body(ApiResponse.error(message));
     }
 }
