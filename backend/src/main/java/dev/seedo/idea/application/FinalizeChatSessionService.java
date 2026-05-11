@@ -28,6 +28,10 @@ import java.util.UUID;
  * <p>본문 LLM 생성, 임베딩 실제 계산은 이번 PR 범위 밖. 트랜잭션 커밋 후 {@link IdeaVersionPublishedEvent}
  * 를 발행해 다음 PR 의 listener 가 받게 한다.
  *
+ * <p>같은 세션에 대한 동시 finalize 는 {@link IdeaChatSessionRepository#findByIdForUpdate} 의 행 락으로
+ * 직렬화된다. 락이 없으면 두 호출이 모두 IN_PROGRESS 검증을 통과해 고아 idea/idea_documents 가 만들어진다
+ * — V2 의 CHECK 는 단일 row 정합성만 강제하므로 고아 idea 는 잡지 못한다.
+ *
  * <p>마지막 방어선: V2 의 chat_sessions CHECK ((status='FINALIZED') = (idea_id IS NOT NULL))
  * 와 짝을 이룬다. 도메인의 {@link IdeaChatSession#finalize} 가 셋을 한 번에 설정하므로 정상 흐름에서는 통과.
  */
@@ -56,7 +60,7 @@ public class FinalizeChatSessionService {
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public FinalizeChatSessionResult finalize(FinalizeChatSessionCommand cmd) {
-        IdeaChatSession session = sessionRepo.findById(cmd.sessionId())
+        IdeaChatSession session = sessionRepo.findByIdForUpdate(cmd.sessionId())
                 .orElseThrow(() -> new ChatSessionNotFoundException(cmd.sessionId()));
         if (!session.getUserId().equals(cmd.actor())) {
             throw new ChatSessionAccessDeniedException(cmd.sessionId(), cmd.actor());
