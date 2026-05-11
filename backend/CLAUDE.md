@@ -20,6 +20,8 @@
 
 도메인별 패키지 + 그 안에서 4 레이어로 쪼갠다 (Spring + DDD 친화 절충안). JPA 엔티티 = aggregate root 를 `domain/` 에 두고, 헥사고날의 "domain model ≠ JPA entity" 분리까지는 가지 않는다 (매퍼 보일러플레이트와 `SELECT FOR UPDATE` 흐름의 복잡도 회피).
 
+> 이 결정의 **배경 / 검토한 대안 / 트레이드오프 / revisit 기준**은 [`docs/adr/0001-package-layout.md`](../docs/adr/0001-package-layout.md) 에 기록되어 있다. 구조 변경을 고려할 때 그 문서를 먼저 읽을 것.
+
 ```
 dev.seedo
 ├── SeedoApplication.java         ← @SpringBootApplication
