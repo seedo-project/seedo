@@ -62,6 +62,8 @@ OPENAI_API_KEY=<선택. 비어두면 임베딩만 실패하고 다른 흐름은 
 
 > **KR ISP 접속 주의**: KR ISP 에서 Supabase Direct (IPv6) 연결이 닿지 않아 **Session pooler (포트 6543)** 사용이 필수입니다. URL 위 형식 그대로.
 
+> **.env 자동 로드 대안**: Run Configuration 에 직접 적는 대신 `backend/` 루트에 `.env` 파일을 두면 `DotenvEnvironmentPostProcessor` 가 부팅 시 자동으로 읽어 환경에 추가합니다. CLI (`./gradlew bootRun`) 와 IntelliJ Run 양쪽에 동일하게 적용됩니다. `.env` 는 git 에서 무시되니 비밀값 그대로 둬도 됩니다. (Run Configuration 의 Environment variables 가 우선순위가 높아 둘을 섞어 써도 충돌 없음)
+
 저장 후 ▶ Run 또는 🐞 Debug 로 실행합니다. 콘솔에 `Started SeedoApplication ... on port(s): 8080` 이 뜨면 성공입니다.
 
 ---

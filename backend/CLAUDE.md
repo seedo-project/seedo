@@ -178,7 +178,8 @@ public PurchaseResult purchase(...) { ... }
 
 ## 환경 변수 (로컬)
 
-`.env` 또는 IDE run config로:
+`backend/` 루트에 `.env` 를 두면 `DotenvEnvironmentPostProcessor` 가 부팅 시 자동 로드한다 (`./gradlew bootRun` / IntelliJ Run 양쪽). IDE Run Configuration 에 직접 적은 환경변수가 우선순위가 높아 둘을 섞어 써도 무방. `.env` 는 git ignore 됨.
+
 ```
 SUPABASE_DB_URL=jdbc:postgresql://db.<proj>.supabase.co:5432/postgres
 SUPABASE_DB_USER=postgres
