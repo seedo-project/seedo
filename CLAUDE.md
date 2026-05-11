@@ -278,8 +278,8 @@ OPENAI_API_KEY
 
 ## 14. 진행 상태 (자주 stale — 시작점만)
 
-- **현재**: 도메인/ERD 설계 완료 (`docs/`), `backend/` Flyway V1~V5 + JPA 엔티티(User·RBAC·크레딧·idea·project·reward 전체) + 상태 전이 가드 + DDD 4 레이어 + invariant IT + Supabase JWT 인증/RBAC 권한 로딩 필터 (#64) + V3 `handle_new_user()` 트리거 / `auth.users` FK (#65) + GitHub Actions backend 테스트 CI (#66) + `ChargeCreditService` (공유 잔액·원장 갱신) + 아이디어 구매 (§8.2) + 챗봇 finalize / 아이디어 새 버전 발행 (§8.4, #79) + **아이디어 채택 → 프로젝트 + 보상 (§8.3, #81)** + V5 정합성 가드 (활성 LEADER 1 명 / rewards.transaction_id 1:1) 까지. 이코노미 루프 (작성 → 구매 → 채택 → 보상) 완성. `web/`는 디자인 페이지들이 main 에 진입.
-- 다음 작업: PG webhook 멱등성 충전 흐름 (§8.1) → 임베딩 실제 계산 (text-embedding-3-small + pgvector upsert, listener stub 채우기) → 프로젝트 RECRUITING/COMPLETE 전이 + 팔로우/모집 → 게시판/인터랙션.
+- **현재**: 도메인/ERD 설계 완료 (`docs/`), `backend/` Flyway V1~V5 + JPA 엔티티(User·RBAC·크레딧·idea·project·reward 전체) + 상태 전이 가드 + DDD 4 레이어 + invariant IT + Supabase JWT 인증/RBAC 권한 로딩 필터 (#64) + V3 `handle_new_user()` 트리거 / `auth.users` FK (#65) + GitHub Actions backend 테스트 CI (#66) + `ChargeCreditService` (공유 잔액·원장 갱신) + 아이디어 구매 (§8.2) + 챗봇 finalize / 아이디어 새 버전 발행 (§8.4, #79) + **아이디어 채택 → 프로젝트 + 보상 (§8.3, #81)** + V5 정합성 가드 + **임베딩 실제 계산 (OpenAI `text-embedding-3-small` + pgvector upsert, ports/adapter 첫 적용, #83)** 까지. 이코노미 루프 (작성 → 구매 → 채택 → 보상) + 검색 토대 완성. `web/`는 디자인 페이지들이 main 에 진입.
+- 다음 작업: PG webhook 멱등성 충전 흐름 (§8.1) → 자연어 검색 / RAG (idea_embeddings 활용) → 프로젝트 RECRUITING/COMPLETE 전이 + 팔로우/모집 → 게시판/인터랙션.
 - 전체 순서: 인프라/인증 → 크레딧/아이디어 → 프로젝트/보상 → 게시판/인터랙션 → 알림/관리자/배포
 
 > 컨벤션·트랜잭션 패턴(§6~§10)은 합의 후에도 유효.
