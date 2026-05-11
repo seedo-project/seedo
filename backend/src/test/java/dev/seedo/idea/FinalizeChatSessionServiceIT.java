@@ -163,15 +163,22 @@ class FinalizeChatSessionServiceIT extends AbstractIntegrationTest {
         int successCount;
         List<Throwable> errors;
         try {
+            // ready latch 없이 start.countDown() 만 쓰면 한 스레드가 늦게 await() 진입한 경우
+            // 사실상 순차 실행이 되어 락 회귀 (PESSIMISTIC_WRITE 제거) 를 못 잡는다. 두 워커가
+            // 모두 start.await() 에 도착했음을 확인한 뒤 동시에 풀어 진짜 경쟁을 강제.
+            CountDownLatch ready = new CountDownLatch(2);
             CountDownLatch start = new CountDownLatch(1);
             Future<FinalizeChatSessionResult> a = exec.submit(() -> {
+                ready.countDown();
                 start.await();
                 return service.finalize(new FinalizeChatSessionCommand(f.sessionId, f.user, "t1", "c1"));
             });
             Future<FinalizeChatSessionResult> b = exec.submit(() -> {
+                ready.countDown();
                 start.await();
                 return service.finalize(new FinalizeChatSessionCommand(f.sessionId, f.user, "t2", "c2"));
             });
+            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
             start.countDown();
             errors = new ArrayList<>();
             int success = 0;

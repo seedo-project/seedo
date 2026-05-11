@@ -170,15 +170,22 @@ class PublishIdeaVersionServiceIT extends AbstractIntegrationTest {
         int v1;
         int v2;
         try {
+            // ready latch 없이 start.countDown() 만 쓰면 한 스레드가 늦게 await() 진입한 경우
+            // 순차 실행이 되어 idea row 락 (findByIdForUpdate) 이 빠져도 우연히 통과할 수 있다.
+            // 두 워커가 모두 start.await() 에 도착했음을 확인한 뒤 동시에 풀어 진짜 경쟁 강제.
+            CountDownLatch ready = new CountDownLatch(2);
             CountDownLatch start = new CountDownLatch(1);
             Future<PublishIdeaVersionResult> a = exec.submit(() -> {
+                ready.countDown();
                 start.await();
                 return service.publish(new PublishIdeaVersionCommand(f.ideaId, f.author, "ta", "ca"));
             });
             Future<PublishIdeaVersionResult> b = exec.submit(() -> {
+                ready.countDown();
                 start.await();
                 return service.publish(new PublishIdeaVersionCommand(f.ideaId, f.author, "tb", "cb"));
             });
+            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
             start.countDown();
             v1 = a.get(15, TimeUnit.SECONDS).version();
             v2 = b.get(15, TimeUnit.SECONDS).version();
