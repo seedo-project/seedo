@@ -48,7 +48,7 @@ const SOCIAL_LOGINS: SocialLogin[] = [
 
 export default function LoginPage() {
   return (
-    <main className="flex min-h-svh flex-col items-center pt-[280px]">
+    <main className="flex min-h-svh flex-col items-center pt-[180px]">
       <p className="text-xs leading-normal font-medium text-muted-foreground">
         일상에서 <span className="font-bold">싹</span>트는 아이디어
       </p>
@@ -59,10 +59,10 @@ export default function LoginPage() {
         width={160}
         height={40}
         priority
-        className="mt-2"
+        className="mt-1"
       />
 
-      <div className="mt-[80px]">
+      <div className="mt-16">
         <LoginForm />
       </div>
 

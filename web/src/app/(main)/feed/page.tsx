@@ -101,7 +101,7 @@ const DUMMY_PROJECTS: Project[] = [
 export default function FeedPage() {
   return (
     <main className="px-[100px] pt-8 pb-16">
-      <div className="flex w-full items-center justify-between pr-3">
+      <div className="flex w-full items-center justify-between">
         <h1 className="text-2xl leading-[1.5] font-bold tracking-[-0.6px] text-foreground">
           지금 뜨는 프로젝트? 뭐 이런..
         </h1>
