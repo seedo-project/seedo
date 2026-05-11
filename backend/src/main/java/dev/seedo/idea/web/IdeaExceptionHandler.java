@@ -3,8 +3,13 @@ package dev.seedo.idea.web;
 import dev.seedo.common.web.ApiResponse;
 import dev.seedo.credit.application.InsufficientCreditException;
 import dev.seedo.idea.application.AlreadyPurchasedException;
+import dev.seedo.idea.application.ChatSessionAccessDeniedException;
+import dev.seedo.idea.application.ChatSessionNotFinalizableException;
+import dev.seedo.idea.application.ChatSessionNotFoundException;
+import dev.seedo.idea.application.IdeaAccessDeniedException;
 import dev.seedo.idea.application.IdeaNotFoundException;
 import dev.seedo.idea.application.IdeaNotPurchasableException;
+import dev.seedo.idea.application.IdeaNotVersionableException;
 import dev.seedo.idea.application.SelfPurchaseException;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -32,8 +37,8 @@ import java.sql.SQLException;
 @ControllerAdvice(basePackages = "dev.seedo.idea.web")
 public class IdeaExceptionHandler {
 
-    @ExceptionHandler(IdeaNotFoundException.class)
-    public ResponseEntity<ApiResponse<Void>> handleNotFound(IdeaNotFoundException e) {
+    @ExceptionHandler({IdeaNotFoundException.class, ChatSessionNotFoundException.class})
+    public ResponseEntity<ApiResponse<Void>> handleNotFound(RuntimeException e) {
         return error(HttpStatus.NOT_FOUND, e.getMessage());
     }
 
@@ -42,9 +47,19 @@ public class IdeaExceptionHandler {
         return error(HttpStatus.CONFLICT, e.getMessage());
     }
 
-    @ExceptionHandler({IdeaNotPurchasableException.class, SelfPurchaseException.class})
-    public ResponseEntity<ApiResponse<Void>> handleNotPurchasable(RuntimeException e) {
+    @ExceptionHandler({
+            IdeaNotPurchasableException.class,
+            SelfPurchaseException.class,
+            ChatSessionNotFinalizableException.class,
+            IdeaNotVersionableException.class
+    })
+    public ResponseEntity<ApiResponse<Void>> handleBadRequest(RuntimeException e) {
         return error(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    @ExceptionHandler({ChatSessionAccessDeniedException.class, IdeaAccessDeniedException.class})
+    public ResponseEntity<ApiResponse<Void>> handleAccessDenied(RuntimeException e) {
+        return error(HttpStatus.FORBIDDEN, e.getMessage());
     }
 
     @ExceptionHandler(InsufficientCreditException.class)

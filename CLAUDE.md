@@ -224,13 +224,13 @@ USING (EXISTS (SELECT 1 FROM idea_purchases          -- 구매자 본문
 | 프론트 | **Next.js 15+ (App Router)** + TS strict + TailwindCSS + shadcn/ui + `@supabase/ssr` |
 | DB / Auth / Storage / Realtime | **Supabase Postgres** (단일 DB, RLS) |
 | 마이그레이션 | **Flyway** (`flyway-core` + `flyway-database-postgresql`). Supabase Studio 직접 변경 금지 |
-| LLM 대화 | Claude Haiku 4.5 (`claude-haiku-4-5`) — $0.25/$1.25, 한국어 정서 양호 |
-| LLM finalize | Claude Sonnet 4.6 (`claude-sonnet-4-6`) — 구조화 출력 |
+| LLM 대화 | OpenAI `gpt-4o-mini` |
+| LLM finalize | OpenAI `gpt-4o-mini` — 구조화 출력 (JSON mode) |
 | 임베딩 / 벡터 | OpenAI text-embedding-3-small (1536D, $0.02/1M) + pgvector (ivfflat/hnsw). 모델 변경 = 전체 재인덱싱 |
 | 결제 | MVP는 무료 크레딧, 추후 PortOne |
 | 마크다운 / 메트릭 | TipTap / PostHog (권장) |
 
-API 키 환경변수: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `SUPABASE_*`.
+API 키 환경변수: `OPENAI_API_KEY`, `SUPABASE_*`.
 
 ---
 
@@ -271,15 +271,15 @@ SUPABASE_DB_USER, SUPABASE_DB_PASSWORD
 SUPABASE_JWKS_URL            # https://<proj>.supabase.co/auth/v1/.well-known/jwks.json
 SUPABASE_JWT_ISSUER          # https://<proj>.supabase.co/auth/v1
 SUPABASE_SERVICE_ROLE_KEY
-ANTHROPIC_API_KEY, OPENAI_API_KEY
+OPENAI_API_KEY
 ```
 
 ---
 
 ## 14. 진행 상태 (자주 stale — 시작점만)
 
-- **현재**: 도메인/ERD 설계 완료 (`docs/`), `backend/` Flyway V1+V2 + JPA 엔티티(User·RBAC·크레딧·idea 전체) + 상태 전이 가드 + DDD 4 레이어 + V1·V2 invariant IT + Supabase JWT 인증/RBAC 권한 로딩 필터 (#64) + Flyway V3 (`handle_new_user()` 트리거 + `auth.users` FK, #65) + GitHub Actions backend 테스트 CI (#66) 까지. idea Service/Controller, 크레딧 Service 의 Java 코드는 0줄. `web/`는 디자인 페이지들이 main 에 진입.
-- 다음 작업: 크레딧 충전 (PG webhook + 멱등성, §8.1) → 챗봇 finalize / 아이디어 새 버전 발행 (§8.4) → 아이디어 구매 (§8.2).
+- **현재**: 도메인/ERD 설계 완료 (`docs/`), `backend/` Flyway V1+V2+V3 + JPA 엔티티(User·RBAC·크레딧·idea 전체) + 상태 전이 가드 + DDD 4 레이어 + V1·V2 invariant IT + Supabase JWT 인증/RBAC 권한 로딩 필터 (#64) + V3 `handle_new_user()` 트리거 / `auth.users` FK (#65) + GitHub Actions backend 테스트 CI (#66) + `ChargeCreditService` (공유 잔액·원장 갱신, ADJUST 어드민 그랜트 포함) + 아이디어 구매 (§8.2) + 챗봇 finalize / 아이디어 새 버전 발행 (§8.4, #79). `web/`는 디자인 페이지들이 main 에 진입.
+- 다음 작업: PG webhook 멱등성 충전 흐름 (§8.1) → 채택 → 프로젝트 + 보상 (§8.3) → 임베딩 실제 계산 (text-embedding-3-small + pgvector upsert, listener stub 채우기) → 게시판/인터랙션.
 - 전체 순서: 인프라/인증 → 크레딧/아이디어 → 프로젝트/보상 → 게시판/인터랙션 → 알림/관리자/배포
 
 > 컨벤션·트랜잭션 패턴(§6~§10)은 합의 후에도 유효.

@@ -78,7 +78,7 @@ DB 는 절충형으로 충분 — Hibernate dirty checking + `@Lock(PESSIMISTIC_
 | `postgresql` (runtime) | JDBC 드라이버 | |
 
 추후 추가 예정:
-- `spring-boot-starter-webflux` (Anthropic/OpenAI WebClient)
+- `spring-boot-starter-webflux` (OpenAI WebClient)
 - `io.github.resilience4j:resilience4j-spring-boot3` (서킷·재시도)
 - `com.github.ben-manes.caffeine:caffeine` (권한 캐시)
 - `org.springframework.ai:spring-ai-openai-spring-boot-starter` (임베딩)
@@ -172,7 +172,6 @@ SUPABASE_DB_PASSWORD=...
 SUPABASE_JWKS_URL=https://<proj>.supabase.co/auth/v1/.well-known/jwks.json
 SUPABASE_JWT_ISSUER=https://<proj>.supabase.co/auth/v1
 SUPABASE_SERVICE_ROLE_KEY=...
-ANTHROPIC_API_KEY=...
 OPENAI_API_KEY=...
 ```
 
