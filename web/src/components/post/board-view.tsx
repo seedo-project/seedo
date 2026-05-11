@@ -1,6 +1,6 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Search, SearchX } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -10,6 +10,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
+import { EmptyState } from "@/components/shared/empty-state";
 
 import { POST_TYPES, PostCard, type Post, type PostType } from "./post-card";
 
@@ -116,9 +117,7 @@ export function BoardView({ posts }: { posts: Post[] }) {
 
       <section className="mt-12 flex flex-col gap-3">
         {visiblePosts.length === 0 ? (
-          <div className="flex h-32 items-center justify-center rounded-md border border-border text-sm text-muted-foreground">
-            해당하는 게시글이 없습니다.
-          </div>
+          <EmptyState icon={SearchX} title="해당하는 게시글이 없습니다" />
         ) : (
           visiblePosts.map((p) => <PostCard key={p.id} post={p} />)
         )}

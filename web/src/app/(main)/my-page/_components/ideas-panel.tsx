@@ -1,11 +1,16 @@
+import { Lightbulb } from "lucide-react";
+
 import { IdeaCard, type Idea } from "@/components/idea/idea-card";
+import { EmptyState } from "@/components/shared/empty-state";
 
 export function IdeasPanel({ ideas }: { ideas: Idea[] }) {
   if (ideas.length === 0) {
     return (
-      <div className="flex h-40 items-center justify-center rounded-xl border border-border text-sm text-muted-foreground">
-        아직 작성한 아이디어가 없습니다.
-      </div>
+      <EmptyState
+        icon={Lightbulb}
+        title="아직 작성한 아이디어가 없습니다"
+        description="첫 아이디어를 작성해보세요"
+      />
     );
   }
   return (

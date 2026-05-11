@@ -1,9 +1,11 @@
 "use client";
 
-import { Plus, Search, Shuffle } from "lucide-react";
+import { Plus, Search, SearchX, Shuffle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+
+import { EmptyState } from "@/components/shared/empty-state";
 
 import { IdeaCard, type Idea } from "./idea-card";
 import {
@@ -71,8 +73,8 @@ export function IdeaFeed({ ideas }: { ideas: Idea[] }) {
 
       <section className="mt-12 grid grid-cols-3 gap-5">
         {visible.length === 0 ? (
-          <div className="col-span-3 flex h-40 items-center justify-center rounded-xl border border-border text-sm text-muted-foreground">
-            검색 결과가 없습니다.
+          <div className="col-span-3">
+            <EmptyState icon={SearchX} title="검색 결과가 없습니다" />
           </div>
         ) : (
           visible.map((i) => (
