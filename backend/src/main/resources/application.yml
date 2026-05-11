@@ -58,7 +58,9 @@ resilience4j:
         max-attempts: 3
         wait-duration: 500ms
         exponential-backoff-multiplier: 2
+        # 정적 inner class ($TooManyRequests 등) 의 YAML 바인딩이 환경에 따라 fragile —
+        # base class 로 단순화. 4xx (401 인증 실패 등) 도 함께 3 회 재시도되지만 임베딩은 부가 기능
+        # (실패 swallow) 이라 비용 미미 + 외부 호출이 일관되게 한 줄에서 처리됨.
         retry-exceptions:
-          - org.springframework.web.reactive.function.client.WebClientResponseException$TooManyRequests
-          - org.springframework.web.reactive.function.client.WebClientResponseException$ServiceUnavailable
+          - org.springframework.web.reactive.function.client.WebClientResponseException
           - java.util.concurrent.TimeoutException

@@ -6,8 +6,10 @@ import io.github.resilience4j.retry.annotation.Retry;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
 
 import java.util.Map;
 
@@ -30,7 +32,13 @@ public class OpenAiEmbeddingAdapter implements EmbeddingClient {
     private final String model;
 
     public OpenAiEmbeddingAdapter(WebClient.Builder builder, OpenAiProperties props) {
+        // Reactor Netty HttpClient 에 responseTimeout 을 박아야 application.yml 의 openai.embedding.timeout 이
+        // 실제로 작동한다 — WebClient.Builder 자체엔 timeout 옵션이 없다. 이게 빠지면 외부 응답이 늦어도
+        // .block() 이 무한 대기하고 Resilience4j 재시도/서킷 가드가 의도대로 작동하지 못한다.
+        HttpClient httpClient = HttpClient.create()
+                .responseTimeout(props.embedding().timeout());
         this.webClient = builder
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .baseUrl(props.embedding().baseUrl())
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + props.apiKey())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
