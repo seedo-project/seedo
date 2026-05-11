@@ -46,6 +46,7 @@ ADR (`docs/adr/`) 과의 차이:
 - [D. 에러 핸들링 / HTTP 매핑](#d-에러-핸들링--http-매핑)
 - [E. JPA / 영속성](#e-jpa--영속성)
 - [F. 테스트 안정성](#f-테스트-안정성)
+- [H. 외부 호출 / 통합](#h-외부-호출--통합)
 - [G. 의도적으로 안 받은 지적](#g-의도적으로-안-받은-지적)
 - [PR 인덱스](#pr-인덱스)
 
@@ -776,6 +777,83 @@ class ConcurrencyIT extends AbstractIntegrationTest {
 
 ---
 
+## H. 외부 호출 / 통합
+
+WebClient / Resilience4j / ports-adapter 같은 외부 시스템 호출 어댑터 패턴에서의 함정.
+
+### H.1 application.yml 의 설정값이 코드에서 실제 사용되는지 확인 — ✅
+
+**출처**: PR #84
+
+**지적**: `OpenAiProperties.embedding.timeout` 을 application.yml 에 정의하고 record 에 바인딩해두었는데, 어댑터 코드는 그 값을 어디에도 쓰지 않았다. 결과: 외부 응답이 늦어도 `.block()` 이 무한 대기. Resilience4j 재시도/서킷 가드도 작동 못 함 (예외/타임아웃이 안 발생하므로 트리거되지 않는다).
+
+**전**:
+```java
+public OpenAiEmbeddingAdapter(WebClient.Builder builder, OpenAiProperties props) {
+    this.webClient = builder
+            .baseUrl(props.embedding().baseUrl())
+            .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + props.apiKey())
+            .build();
+    // props.embedding().timeout() 은 어디에도 안 쓰임 — 시그널 없음
+}
+```
+
+**후**:
+```java
+public OpenAiEmbeddingAdapter(WebClient.Builder builder, OpenAiProperties props) {
+    HttpClient httpClient = HttpClient.create()
+            .responseTimeout(props.embedding().timeout());
+    this.webClient = builder
+            .clientConnector(new ReactorClientHttpConnector(httpClient))
+            .baseUrl(props.embedding().baseUrl())
+            .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + props.apiKey())
+            .build();
+}
+```
+
+**판단 근거**: 진짜 버그. yml 에 박힌 timeout 이 실제 적용 안 되면 외부 시스템이 묶일 때 우리도 같이 묶인다. backend/CLAUDE.md §"외부 호출" 도 "WebClient + WebClientCustomizer로 타임아웃 30초" 라고 명시했지만 자바에 연결을 놓쳤다.
+
+**교훈**: 외부 호출 어댑터 작성 시 self-check — application.yml 에 박은 설정값이 코드 어디서 실제로 쓰이는지 추적. ConfigurationProperties 만 정의하고 인젝션만 받으면 "사용한 것 같은" 착각 일으킴. WebClient 의 timeout 은 `WebClient.Builder` 자체엔 옵션 없음 — Reactor Netty `HttpClient.responseTimeout` + `ReactorClientHttpConnector` 로 연결해야 한다. 비슷한 함정 (caffeine TTL, JWT issuer 등) 도 동일하게 점검.
+
+---
+
+### H.2 Resilience4j retry-exceptions 의 inner class 표기 회피 — ✅
+
+**출처**: PR #84
+
+**지적**: `WebClientResponseException$TooManyRequests` 같은 정적 inner class 의 binary name (`$` 표기) 은 Spring Boot YAML ConfigurationProperties 바인딩에서 fragile. 환경/라이브러리 버전에 따라 `Class.forName` 이 실패해 retry 가드가 조용히 작동 안 할 수 있다.
+
+**전**:
+```yaml
+resilience4j:
+  retry:
+    instances:
+      openai-embedding:
+        retry-exceptions:
+          - org.springframework.web.reactive.function.client.WebClientResponseException$TooManyRequests
+          - org.springframework.web.reactive.function.client.WebClientResponseException$ServiceUnavailable
+          - java.util.concurrent.TimeoutException
+```
+
+**후**:
+```yaml
+resilience4j:
+  retry:
+    instances:
+      openai-embedding:
+        retry-exceptions:
+          - org.springframework.web.reactive.function.client.WebClientResponseException
+          - java.util.concurrent.TimeoutException
+```
+
+**판단 근거**: base class 로 단순화. 4xx (401 인증 실패 등) 도 함께 3 회 재시도되지만 임베딩처럼 부가 기능 (실패 swallow) 이면 비용 미미. 정확한 분류가 필요한 경우엔 코드 레벨에서 `retryExceptionPredicate` 빈 + 분류 또는 wrapper exception 도입 — 이번 PR 은 단순화로 충분.
+
+**교훈**: YAML 의 클래스 이름 바인딩은 **base class / 외부 노출 public class 만** 사용. inner class 의 `$` 표기는 피한다. 다중 sealed-style 분류가 필요하면:
+- (a) 부가 기능 — 그냥 base class + 영구 에러도 N 회 재시도 허용 (비용 < 정확성)
+- (b) 핵심 트랜잭션 — `retryExceptionPredicate` 빈 정의 + 어댑터에서 wrapper exception 던지기 (정확성 > 비용)
+
+---
+
 ## G. 의도적으로 안 받은 지적
 
 각각 한 줄 사유. 같은 지적이 또 오면 이 섹션 링크 답글로 갈음.
@@ -817,3 +895,4 @@ PR 별로 어떤 항목이 나왔는지 — 디버깅 / 머지 후 추적용.
 | #80 | finalize CodeRabbit 후속 | A.3, A.4 |
 | #81 | 채택 + 보상 | B.3, C.1, C.2, D.3 |
 | #82 | 채택 CodeRabbit 후속 | B.3, C.1 (V5) |
+| #84 | 임베딩 실제 계산 (OpenAI + pgvector, ports/adapter 첫 적용) | H.1, H.2 |
