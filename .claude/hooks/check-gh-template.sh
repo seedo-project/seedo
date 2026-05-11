@@ -12,10 +12,28 @@ if ! printf '%s' "$command" | grep -qE 'gh[[:space:]]+(issue|pr)[[:space:]]+(cre
   exit 0
 fi
 
-# 2) --body 가 명시되어 있을 때만 검증 (라벨/상태만 바꾸는 edit 는 통과)
+# 2) --body / -b / --body-file / -F 가 명시되어 있을 때만 검증 (라벨/상태만 바꾸는 edit 는 통과)
 if ! printf '%s' "$command" | grep -qE -- '(^|[[:space:]])(--body|-b|--body-file|-F)([[:space:]]|=)'; then
   exit 0
 fi
+
+# 헬퍼: command 에서 옵션 값 추출 — --opt val / --opt=val / -o val / -o=val 모두 지원 (첫 매치)
+extract_opt_value() {
+  local cmd="$1" opt_long="$2" opt_short="$3"
+  printf '%s' "$cmd" | sed -nE "s/.*(${opt_long}|${opt_short})(=|[[:space:]]+)([^[:space:]]+).*/\3/p" | head -n1
+}
+
+# 헬퍼: command 에서 모든 label 값 추출 — --label/-l + (= or 공백) + (따옴표 또는 비공백). 콤마 분리 다중라벨 지원.
+extract_labels() {
+  local cmd="$1"
+  printf '%s\n' "$cmd" \
+    | grep -oE -- '(--label|-l)(=|[[:space:]]+)("[^"]*"|[^[:space:]]+)' \
+    | sed -E 's/^(--label|-l)(=|[[:space:]]+)//' \
+    | tr -d '"' \
+    | tr ',' '\n' \
+    | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
+    | grep -v '^$' || true
+}
 
 # 3) 종류 판별
 kind=""
@@ -24,21 +42,22 @@ if printf '%s' "$command" | grep -qE 'gh[[:space:]]+pr[[:space:]]+(create|edit)'
   kind="pr"
   template_path=".github/pull_request_template.md"
 elif printf '%s' "$command" | grep -qE 'gh[[:space:]]+issue[[:space:]]+(create|edit)'; then
-  if printf '%s' "$command" | grep -qE -- '--label[[:space:]]+feature(\b|[[:space:]]|"|$)'; then
+  labels=$(extract_labels "$command")
+  if printf '%s\n' "$labels" | grep -qx 'feature'; then
     kind="issue-feature"
     template_path=".github/ISSUE_TEMPLATE/feature_request.yml"
-  elif printf '%s' "$command" | grep -qE -- '--label[[:space:]]+bug(\b|[[:space:]]|"|$)'; then
+  elif printf '%s\n' "$labels" | grep -qx 'bug'; then
     kind="issue-bug"
     template_path=".github/ISSUE_TEMPLATE/bug_report.yml"
   else
     # `gh issue edit <num>` — 라벨이 명령에 없으면 이슈 번호로 조회
     num=$(printf '%s' "$command" | sed -nE 's/.*gh[[:space:]]+issue[[:space:]]+edit[[:space:]]+([0-9]+).*/\1/p')
     if [ -n "${num:-}" ] && command -v gh >/dev/null 2>&1; then
-      labels=$(gh issue view "$num" --json labels -q '.labels[].name' 2>/dev/null || echo "")
-      if printf '%s' "$labels" | grep -qx 'feature'; then
+      remote_labels=$(gh issue view "$num" --json labels -q '.labels[].name' 2>/dev/null || echo "")
+      if printf '%s' "$remote_labels" | grep -qx 'feature'; then
         kind="issue-feature"
         template_path=".github/ISSUE_TEMPLATE/feature_request.yml"
-      elif printf '%s' "$labels" | grep -qx 'bug'; then
+      elif printf '%s' "$remote_labels" | grep -qx 'bug'; then
         kind="issue-bug"
         template_path=".github/ISSUE_TEMPLATE/bug_report.yml"
       else
@@ -63,10 +82,19 @@ case "$kind" in
     ;;
 esac
 
-# 5) command 문자열 전체에서 각 헤더가 등장하는지 grep (HEREDOC / --body "..." 모두 커버)
+# 5) 검사 대상 텍스트 확보 — --body-file/-F 인 경우 파일 내용을 추가 (인라인 --body/-b 의 HEREDOC / "..." 은 command 에 이미 포함)
+body_content="$command"
+if printf '%s' "$command" | grep -qE -- '(^|[[:space:]])(--body-file|-F)([[:space:]]|=)'; then
+  body_file=$(extract_opt_value "$command" '--body-file' '-F')
+  if [ -n "${body_file:-}" ] && [ -f "$body_file" ]; then
+    body_content="$body_content"$'\n'"$(cat "$body_file")"
+  fi
+fi
+
+# 6) 각 헤더가 본문에 등장하는지 grep
 missing=()
 for section in "${required[@]}"; do
-  if ! printf '%s' "$command" | grep -qF "$section"; then
+  if ! printf '%s' "$body_content" | grep -qF "$section"; then
     missing+=( "$section" )
   fi
 done
