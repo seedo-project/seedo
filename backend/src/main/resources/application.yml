@@ -26,3 +26,41 @@ spring:
 
 server:
   port: 8080
+
+# 외부 LLM/임베딩 API 설정.
+# OPENAI_API_KEY 가 없으면 OpenAiEmbeddingAdapter 빈 자체는 만들어지지만 실제 호출 시점에 401 로 실패한다.
+# 테스트에선 EmbeddingClient stub 빈으로 대체 (실 OpenAI 호출 안 함).
+openai:
+  api-key: ${OPENAI_API_KEY:}
+  embedding:
+    base-url: https://api.openai.com/v1
+    model: text-embedding-3-small
+    # 1 회 호출 타임아웃. OpenAI 임베딩은 보통 100~500ms — 30s 는 보수적 상한.
+    timeout: 30s
+
+# Resilience4j — 외부 호출 보호 (CLAUDE.md §10.3).
+# 서킷: 10 회 슬라이딩 윈도우, 5 회 이상 호출 + 실패율 50% 이상이면 OPEN, 60 초 후 HALF_OPEN.
+# 재시도: 일시 오류 (429/503/타임아웃) 만 3 회 지수 백오프.
+resilience4j:
+  circuitbreaker:
+    instances:
+      openai-embedding:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 60s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+  retry:
+    instances:
+      openai-embedding:
+        max-attempts: 3
+        wait-duration: 500ms
+        exponential-backoff-multiplier: 2
+        # 정적 inner class ($TooManyRequests 등) 의 YAML 바인딩이 환경에 따라 fragile —
+        # base class 로 단순화. 4xx (401 인증 실패 등) 도 함께 3 회 재시도되지만 임베딩은 부가 기능
+        # (실패 swallow) 이라 비용 미미 + 외부 호출이 일관되게 한 줄에서 처리됨.
+        retry-exceptions:
+          - org.springframework.web.reactive.function.client.WebClientResponseException
+          - java.util.concurrent.TimeoutException

@@ -1,6 +1,8 @@
 package dev.seedo.support;
 
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -14,10 +16,15 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 모든 통합테스트가 상속하는 베이스. 한 번만 띄운 PostgreSQL 16 컨테이너를 공유한다.
  * Flyway 가 컨테이너에 V1+ 를 자동 적용하므로 테스트 시작 시점에 스키마는 prod 와 동일.
  *
- * 이미지: {@code pgvector/pgvector:pg16} — V2 부터 vector 확장 사용.
+ * <p>이미지: {@code pgvector/pgvector:pg16} — V2 부터 vector 확장 사용.
  * 표준 postgres 이미지로 인식시키기 위해 {@code asCompatibleSubstituteFor("postgres")} 필요.
+ *
+ * <p>{@code @ActiveProfiles("test")} — production 전용 빈 ({@code OpenAiEmbeddingAdapter} 등 외부 통합
+ * 어댑터) 비활성화. 그 자리는 {@link IntegrationTestStubsConfig} 의 stub 빈이 채운다.
  */
 @SpringBootTest
+@ActiveProfiles("test")
+@Import(IntegrationTestStubsConfig.class)
 public abstract class AbstractIntegrationTest {
 
     /** PostgreSQL: check constraint 위반 (예: balance >= 0, type-부호 정합성 등) */
