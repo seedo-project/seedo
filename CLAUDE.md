@@ -21,7 +21,7 @@ seedo/
     └── CLAUDE.md
 ```
 
-`backend/`는 부트스트랩 완료 (Spring Boot 3.5.14, Gradle 8.14.4 wrapper, Flyway). `web/`은 폴더 + `CLAUDE.md`만 있는 상태.
+`backend/`는 Flyway V1~V5 + 도메인/트랜잭션 코드 진행 중 (상세는 §14). `web/`는 디자인 페이지가 main 에 들어와 있고 백엔드 미연동 — UI 작업은 다른 팀원 담당.
 
 ## 3. 도메인 모델
 
@@ -80,7 +80,7 @@ PK는 별도 명시 없으면 `bigserial`. 시간 컬럼은 모두 `timestamptz`
 
 ### 5.5 인터랙션
 - `hypes` — user_id + (idea_id XOR project_id), partial UNIQUE 두 개
-- `rewards` — recipient_user_id, reward_type, amount, status, transaction_id. type ∈ {ADOPTION, INTERVIEW, ADMIN, OTHER}
+- `rewards` — recipient_user_id, reward_type, amount, status, transaction_id, **idea_id** (ADOPTION 일 때만 NOT NULL), paid_at. type ∈ {ADOPTION, INTERVIEW, ADMIN, OTHER}. partial UNIQUE(idea_id) WHERE reward_type='ADOPTION' — "한 아이디어 → 첫 채택자만 보상" (§12) 정책의 DB 가드
 
 ### 5.6 게시판
 - `posts` — author_id, project_id, post_type ∈ {FREE, PROMO, BETA_RECRUIT, DEV_RECRUIT}, status
@@ -251,7 +251,7 @@ API 키 환경변수: `OPENAI_API_KEY`, `SUPABASE_*`.
 
 ## 13. 자주 쓰는 명령
 
-> `backend/`, `web/`은 폴더 + `CLAUDE.md`만 있는 상태. 아래는 **부트스트랩 완료 후** 사용.
+> backend / web 모두 부트스트랩 + 일부 기능 진입 상태 (§14). 아래는 일상 작업 명령.
 
 ```sh
 # backend (Java 25 + Spring Boot)
@@ -278,8 +278,8 @@ OPENAI_API_KEY
 
 ## 14. 진행 상태 (자주 stale — 시작점만)
 
-- **현재**: 도메인/ERD 설계 완료 (`docs/`), `backend/` Flyway V1+V2+V3 + JPA 엔티티(User·RBAC·크레딧·idea 전체) + 상태 전이 가드 + DDD 4 레이어 + V1·V2 invariant IT + Supabase JWT 인증/RBAC 권한 로딩 필터 (#64) + V3 `handle_new_user()` 트리거 / `auth.users` FK (#65) + GitHub Actions backend 테스트 CI (#66) + `ChargeCreditService` (공유 잔액·원장 갱신, ADJUST 어드민 그랜트 포함) + 아이디어 구매 (§8.2) + 챗봇 finalize / 아이디어 새 버전 발행 (§8.4, #79). `web/`는 디자인 페이지들이 main 에 진입.
-- 다음 작업: PG webhook 멱등성 충전 흐름 (§8.1) → 채택 → 프로젝트 + 보상 (§8.3) → 임베딩 실제 계산 (text-embedding-3-small + pgvector upsert, listener stub 채우기) → 게시판/인터랙션.
+- **현재**: 도메인/ERD 설계 완료 (`docs/`), `backend/` Flyway V1~V5 + JPA 엔티티(User·RBAC·크레딧·idea·project·reward 전체) + 상태 전이 가드 + DDD 4 레이어 + invariant IT + Supabase JWT 인증/RBAC 권한 로딩 필터 (#64) + V3 `handle_new_user()` 트리거 / `auth.users` FK (#65) + GitHub Actions backend 테스트 CI (#66) + `ChargeCreditService` (공유 잔액·원장 갱신) + 아이디어 구매 (§8.2) + 챗봇 finalize / 아이디어 새 버전 발행 (§8.4, #79) + **아이디어 채택 → 프로젝트 + 보상 (§8.3, #81)** + V5 정합성 가드 (활성 LEADER 1 명 / rewards.transaction_id 1:1) 까지. 이코노미 루프 (작성 → 구매 → 채택 → 보상) 완성. `web/`는 디자인 페이지들이 main 에 진입.
+- 다음 작업: PG webhook 멱등성 충전 흐름 (§8.1) → 임베딩 실제 계산 (text-embedding-3-small + pgvector upsert, listener stub 채우기) → 프로젝트 RECRUITING/COMPLETE 전이 + 팔로우/모집 → 게시판/인터랙션.
 - 전체 순서: 인프라/인증 → 크레딧/아이디어 → 프로젝트/보상 → 게시판/인터랙션 → 알림/관리자/배포
 
 > 컨벤션·트랜잭션 패턴(§6~§10)은 합의 후에도 유효.
