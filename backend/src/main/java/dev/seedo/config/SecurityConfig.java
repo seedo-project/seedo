@@ -33,6 +33,7 @@ public class SecurityConfig {
                         // 둘러볼 수 있어야 한다. 실제 API 호출 시점엔 Authorize 버튼으로 JWT 입력 필요.
                         .requestMatchers(
                                 "/swagger-ui/**",
+                                "/swagger-ui/index.html",
                                 "/swagger-ui.html",
                                 "/v3/api-docs",
                                 "/v3/api-docs/**",

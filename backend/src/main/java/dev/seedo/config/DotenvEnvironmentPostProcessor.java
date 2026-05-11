@@ -40,8 +40,9 @@ public class DotenvEnvironmentPostProcessor implements EnvironmentPostProcessor 
             }
             String key = trimmed.substring(0, idx).trim();
             String value = trimmed.substring(idx + 1).trim();
-            if ((value.startsWith("\"") && value.endsWith("\""))
-                    || (value.startsWith("'") && value.endsWith("'"))) {
+            if (value.length() >= 2
+                    && ((value.startsWith("\"") && value.endsWith("\""))
+                    || (value.startsWith("'") && value.endsWith("'")))) {
                 value = value.substring(1, value.length() - 1);
             }
             if (!environment.containsProperty(key)) {
