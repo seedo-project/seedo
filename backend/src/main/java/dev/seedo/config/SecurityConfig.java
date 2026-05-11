@@ -29,6 +29,16 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Swagger UI + OpenAPI 스펙 경로는 인증 우회 — 개발자/리뷰어가 토큰 없이 API 목록을
+                        // 둘러볼 수 있어야 한다. 실제 API 호출 시점엔 Authorize 버튼으로 JWT 입력 필요.
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui/index.html",
+                                "/swagger-ui.html",
+                                "/v3/api-docs",
+                                "/v3/api-docs/**",
+                                "/v3/api-docs.yaml"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2

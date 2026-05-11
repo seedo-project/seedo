@@ -98,6 +98,18 @@ DB 는 절충형으로 충분 — Hibernate dirty checking + `@Lock(PESSIMISTIC_
 
 > Gradle wrapper(`./gradlew`)가 이미 들어 있다 — JDK 25만 깔려 있으면 바로 사용 가능.
 
+## API 문서 (Swagger / OpenAPI)
+
+`bootRun` 으로 띄우면 자동으로 API 문서가 생성된다 — springdoc-openapi 가 컨트롤러 어노테이션을 스캔.
+
+- **Swagger UI**: `http://localhost:8080/swagger-ui/index.html` — 브라우저에서 API 목록 + 테스트 호출 가능
+- **OpenAPI 스펙 (JSON)**: `http://localhost:8080/v3/api-docs`
+- **인증된 API 호출**: 우측 상단 `Authorize` 버튼에서 Supabase JWT 입력 → 모든 요청에 `Authorization: Bearer <token>` 자동 부착
+
+위 경로는 `SecurityConfig` 에서 인증 우회로 화이트리스트 — 토큰 없이 문서 자체는 볼 수 있다. 실제 호출 시점엔 JWT 필요.
+
+추가 커스터마이즈는 `dev.seedo.config.OpenApiConfig` 에서.
+
 ## Flyway 마이그레이션 워크플로
 
 1. 다음 V번호 확인
@@ -166,7 +178,8 @@ public PurchaseResult purchase(...) { ... }
 
 ## 환경 변수 (로컬)
 
-`.env` 또는 IDE run config로:
+`backend/` 루트에 `.env` 를 두면 `DotenvEnvironmentPostProcessor` 가 부팅 시 자동 로드한다 (`./gradlew bootRun` / IntelliJ Run 양쪽). IDE Run Configuration 에 직접 적은 환경변수가 우선순위가 높아 둘을 섞어 써도 무방. `.env` 는 git ignore 됨.
+
 ```
 SUPABASE_DB_URL=jdbc:postgresql://db.<proj>.supabase.co:5432/postgres
 SUPABASE_DB_USER=postgres

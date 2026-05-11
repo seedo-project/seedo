@@ -19,7 +19,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
  *   <li>JSON 이 아닌 응답 (파일 다운로드 등) — 미감싸기</li>
  * </ul>
  */
-@RestControllerAdvice
+@RestControllerAdvice(basePackages = "dev.seedo")
 public class ApiResponseAdvice implements ResponseBodyAdvice<Object> {
 
     @Override
