@@ -3,12 +3,15 @@
 import { ArrowUp } from "lucide-react";
 import { useState } from "react";
 
+import { toast } from "@/lib/toast";
+
 export default function IdeaWritePage() {
   const [message, setMessage] = useState("");
 
   const handleSend = () => {
     if (!message.trim()) return;
     // TODO: 챗봇 finalize 시작 (§8.4) — Spring API + LLM 연동 별도 작업
+    toast.notReady("챗봇 연결 준비 중입니다");
   };
 
   return (

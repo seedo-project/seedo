@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
+import { toast } from "@/lib/toast";
 
 const NAV_ITEMS = [
   { key: "idea", label: "아이디어", href: "/idea" },
@@ -26,6 +27,7 @@ export function Navbar() {
 
   const handleLogout = () => {
     logout();
+    toast.success("로그아웃되었습니다");
     router.push("/login");
   };
 
