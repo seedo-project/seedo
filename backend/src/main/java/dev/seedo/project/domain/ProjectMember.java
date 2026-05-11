@@ -68,9 +68,18 @@ public class ProjectMember {
         return new ProjectMember(projectId, userId, ProjectMemberRole.MEMBER);
     }
 
+    /**
+     * MEMBER 만 호출 가능. LEADER 는 별도 이관 흐름 (향후 {@code transferLeadership(newLeader)} 메서드 예정)
+     * 으로 빠져야 한다 — LEADER 가 그냥 leave 하면 활성 리더가 0 명이 되어 {@code projects.leader_id} 와
+     * 멤버십 데이터가 어긋난다. V5 의 {@code project_members_active_leader_uniq} 가 DB 최후 가드.
+     */
     public void leave() {
         if (leftAt != null) {
             throw new IllegalStateException("already left");
+        }
+        if (role == ProjectMemberRole.LEADER) {
+            throw new IllegalStateException(
+                    "LEADER cannot leave directly — use transferLeadership to demote first");
         }
         this.leftAt = OffsetDateTime.now(ZoneOffset.UTC);
     }

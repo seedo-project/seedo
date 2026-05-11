@@ -21,7 +21,7 @@ seedo/
     └── CLAUDE.md
 ```
 
-`backend/`는 부트스트랩 완료 (Spring Boot 3.5.14, Gradle 8.14.4 wrapper, Flyway). `web/`은 폴더 + `CLAUDE.md`만 있는 상태.
+`backend/`는 Flyway V1~V5 + 도메인/트랜잭션 코드 진행 중 (상세는 §14). `web/`는 디자인 페이지가 main 에 들어와 있고 백엔드 미연동 — UI 작업은 다른 팀원 담당.
 
 ## 3. 도메인 모델
 
@@ -251,7 +251,7 @@ API 키 환경변수: `OPENAI_API_KEY`, `SUPABASE_*`.
 
 ## 13. 자주 쓰는 명령
 
-> `backend/`, `web/`은 폴더 + `CLAUDE.md`만 있는 상태. 아래는 **부트스트랩 완료 후** 사용.
+> backend / web 모두 부트스트랩 + 일부 기능 진입 상태 (§14). 아래는 일상 작업 명령.
 
 ```sh
 # backend (Java 25 + Spring Boot)
