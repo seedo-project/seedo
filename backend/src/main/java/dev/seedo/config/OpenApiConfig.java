@@ -1,10 +1,12 @@
 package dev.seedo.config;
 
+import dev.seedo.common.web.CurrentUserId;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springdoc.core.utils.SpringDocUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -22,6 +24,11 @@ import org.springframework.context.annotation.Configuration;
 public class OpenApiConfig {
 
     private static final String BEARER_SCHEME_NAME = "bearer-jwt";
+
+    static {
+        // @CurrentUserId 파라미터는 JWT sub claim 으로 자동 주입되므로 OpenAPI 스펙에 노출하지 않는다.
+        SpringDocUtils.getConfig().addAnnotationsToIgnore(CurrentUserId.class);
+    }
 
     @Bean
     public OpenAPI seedoOpenApi() {
