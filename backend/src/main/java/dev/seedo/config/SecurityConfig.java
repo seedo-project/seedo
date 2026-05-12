@@ -39,6 +39,9 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/v3/api-docs.yaml"
                         ).permitAll()
+                        // PG 결제 webhook — JWT 없이 외부(PG)에서 호출. 컨트롤러 자체가
+                        // X-Webhook-Secret 헤더를 timing-safe 검증하므로 여기서는 통과만 시킨다.
+                        .requestMatchers("/api/v1/webhooks/payments/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2

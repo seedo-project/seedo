@@ -27,6 +27,13 @@ spring:
 server:
   port: 8080
 
+# 결제 webhook 보호.
+# PortOne 본격 연동 (HMAC 서명) 도입 전, 외부 노출 엔드포인트의 임시 가드.
+# 미설정이면 모든 webhook 요청이 401 로 차단된다 — 무방비 노출보다 명시적 거부가 안전.
+payment:
+  webhook:
+    secret: ${PAYMENT_WEBHOOK_SECRET:}
+
 # 외부 LLM/임베딩 API 설정.
 # OPENAI_API_KEY 가 없으면 OpenAiEmbeddingAdapter 빈 자체는 만들어지지만 실제 호출 시점에 401 로 실패한다.
 # 테스트에선 EmbeddingClient stub 빈으로 대체 (실 OpenAI 호출 안 함).
