@@ -1,6 +1,15 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import { createClient } from "@/lib/supabase/client";
 
 export type AuthUser = {
   id: string;
@@ -11,38 +20,93 @@ export type AuthUser = {
 
 type AuthContextValue = {
   user: AuthUser | null;
-  logout: () => void;
+  loading: boolean;
+  logout: () => Promise<void>;
+  refresh: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-// Supabase 연결 전까지의 임시 사용자.
-// 잔액/닉네임은 my-page mock과 동일한 톤으로 맞춰 둠.
-const MOCK_USER: AuthUser = {
-  id: "00000000-0000-0000-0000-000000000001",
-  nickname: "박소은",
-  email: "soeun_park@korea.ac.kr",
-  creditBalance: 320,
-};
+export function AuthProvider({
+  initialUser = null,
+  children,
+}: {
+  initialUser?: AuthUser | null;
+  children: React.ReactNode;
+}) {
+  const [user, setUser] = useState<AuthUser | null>(initialUser);
+  const [loading, setLoading] = useState(initialUser === null);
 
-function initialUser(): AuthUser | null {
-  if (
-    process.env.NODE_ENV === "development" &&
-    process.env.NEXT_PUBLIC_DEV_SKIP_AUTH === "true"
-  ) {
-    return MOCK_USER;
-  }
-  return null;
-}
+  const fetchProfile = useCallback(async (): Promise<AuthUser | null> => {
+    const supabase = createClient();
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
+    if (!authUser) return null;
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(() => initialUser());
+    // RLS: users self_select / user_credits self_select 가 본인 row 만 반환.
+    const [{ data: profile }, { data: credits }] = await Promise.all([
+      supabase
+        .from("users")
+        .select("id, nickname, email")
+        .eq("id", authUser.id)
+        .maybeSingle(),
+      supabase
+        .from("user_credits")
+        .select("balance")
+        .eq("user_id", authUser.id)
+        .maybeSingle(),
+    ]);
 
-  const logout = useCallback(() => {
+    if (!profile) return null;
+    return {
+      id: profile.id,
+      nickname: profile.nickname,
+      email: profile.email,
+      creditBalance: Number(credits?.balance ?? 0),
+    };
+  }, []);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      setUser(await fetchProfile());
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchProfile]);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    if (initialUser === null) {
+      refresh();
+    }
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        setUser(null);
+        setLoading(false);
+      } else {
+        refresh();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [initialUser, refresh]);
+
+  const logout = useCallback(async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
     setUser(null);
   }, []);
 
-  const value = useMemo<AuthContextValue>(() => ({ user, logout }), [user, logout]);
+  const value = useMemo<AuthContextValue>(
+    () => ({ user, loading, logout, refresh }),
+    [user, loading, logout, refresh],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
