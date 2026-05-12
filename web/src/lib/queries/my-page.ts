@@ -1,3 +1,4 @@
+import { resolveDisplayName } from "@/lib/auth-display";
 import { createClient } from "@/lib/supabase/server";
 import { formatRelativeKo } from "@/lib/format";
 import type { Idea } from "@/components/idea/idea-card";
@@ -66,31 +67,42 @@ export async function fetchMyPageData(): Promise<MyPageQueryResult | null> {
     email: authUser.email ?? "",
   };
 
-  const [{ data: ideaRows }, { data: projectRows }] = await Promise.all([
-    supabase
-      .from("ideas")
-      .select(
-        `id, price_credits, created_at,
+  const [{ data: ideaRows }, { data: projectRows }, { data: ownProfile }] =
+    await Promise.all([
+      supabase
+        .from("ideas")
+        .select(
+          `id, price_credits, created_at,
          idea_embeddings ( keywords )`,
-      )
-      .eq("author_id", authUser.id)
-      .neq("status", "DELETED")
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("projects")
-      .select(
-        `id, status, idea_snapshot_md,
+        )
+        .eq("author_id", authUser.id)
+        .neq("status", "DELETED")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("projects")
+        .select(
+          `id, status, idea_snapshot_md,
          ideas:ideas!projects_idea_id_fkey (
            current_version_id,
            idea_documents!ideas_current_version_id_fkey ( title )
          )`,
-      )
-      .eq("leader_id", authUser.id)
-      .neq("status", "DELETED")
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false }),
-  ]);
+        )
+        .eq("leader_id", authUser.id)
+        .neq("status", "DELETED")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("public_profiles")
+        .select("nickname")
+        .eq("id", authUser.id)
+        .maybeSingle(),
+    ]);
+  const projectSubtitle = resolveDisplayName(
+    profile.name,
+    profile.email,
+    ownProfile?.nickname ?? "",
+  );
 
   const ideas: Idea[] = (ideaRows ?? []).map((row) => {
     const emb = Array.isArray(row.idea_embeddings)
@@ -115,7 +127,7 @@ export async function fetchMyPageData(): Promise<MyPageQueryResult | null> {
     return {
       id: String(row.id),
       title: doc?.title ?? snapshotTitle(row.idea_snapshot_md),
-      subtitle: profile.name || authUser.email || "",
+      subtitle: projectSubtitle,
       description: snapshotPreview(row.idea_snapshot_md),
       thumbnailUrl: null,
       statuses: statusToChips(row.status),

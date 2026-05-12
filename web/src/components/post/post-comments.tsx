@@ -35,7 +35,7 @@ export function PostComments({ initial }: { initial: PostComment[] }) {
       ...prev,
       {
         id: `local-${Date.now()}`,
-        authorName: user.nickname,
+        authorName: user.displayName,
         body,
         createdAt: "방금 전",
       },
