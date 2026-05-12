@@ -7,6 +7,7 @@ import { type FormEvent, type SVGProps, useEffect, useState } from "react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "@/lib/toast";
 
 /**
  * Figma의 ShowHide 컴포넌트 — 사선 그어진 눈 (hide 상태).
@@ -225,9 +226,12 @@ function InfoStep({ marketingConsent }: { marketingConsent: boolean }) {
     setSubmitting(false);
     if (signUpError) {
       setError(signUpError.message);
+      toast.error("회원가입에 실패했습니다");
       return;
     }
-    router.push("/idea");
+    toast.success("가입이 완료되었습니다");
+    // signUp 직후 Supabase 가 세션을 자동 발급 — hard navigation 으로 서버 cookies 동기화.
+    window.location.href = "/idea";
   };
 
   return (
