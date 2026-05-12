@@ -3,7 +3,6 @@ package dev.seedo.idea.application;
 import dev.seedo.idea.application.port.out.EmbeddingClient;
 import dev.seedo.idea.infrastructure.IdeaEmbeddingRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -14,13 +13,14 @@ import java.util.List;
  * <ol>
  *   <li>쿼리 비어있음/공백 → {@link SearchQueryEmptyException}</li>
  *   <li>limit 정규화 — null/0/음수 → 기본 20, 상한 50 까지 클램프</li>
- *   <li>{@link EmbeddingClient} 로 쿼리 임베딩 추출 (외부 호출, 트랜잭션 외부)</li>
+ *   <li>{@link EmbeddingClient} 로 쿼리 임베딩 추출 — <b>트랜잭션 없이</b> 호출</li>
  *   <li>native query 로 ideas JOIN idea_embeddings cosine 거리 정렬</li>
  * </ol>
  *
- * <p>{@code @Transactional(readOnly = true)} — 검색은 read-only. 외부 호출(임베딩) 은 메서드 시작 직후
- * 트랜잭션 안에서 일어나지만, 호출 자체가 짧고 (수백 ms) 그 결과로 단일 native query 만 실행하므로
- * 트랜잭션 길이 부담 없음. 외부 실패 시 트랜잭션도 자연 롤백 — read-only 라 부수효과 없음.
+ * <p>의도적으로 메서드에 {@code @Transactional} 을 붙이지 않는다 (CLAUDE.md backend §"외부 호출").
+ * 외부 LLM 호출은 응답까지 수백 ms ~ 수 초 — 그동안 DB 커넥션을 점유하면 동시 검색이 늘 때 커넥션 풀이
+ * 고갈된다. 대신 임베딩 호출은 풀 밖에서 끝내고, 그 결과로만 단일 native query 를 호출한다
+ * (Hibernate 가 자동으로 짧은 트랜잭션을 시작하고 닫는다 — read 한 줄이라 정합성 부담 없음).
  */
 @Service
 public class SearchIdeasService {
@@ -36,7 +36,6 @@ public class SearchIdeasService {
         this.embeddingRepo = embeddingRepo;
     }
 
-    @Transactional(readOnly = true)
     public List<IdeaSearchResult> search(String query, Integer requestedLimit) {
         if (query == null || query.isBlank()) {
             throw new SearchQueryEmptyException();
