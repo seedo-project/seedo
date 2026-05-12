@@ -1,0 +1,75 @@
+import { createClient } from "@/lib/supabase/server";
+import type { Project } from "@/components/project/project-card";
+import type { ChipVariant } from "@/components/project/chip-status";
+
+function statusToChips(status: string): ChipVariant[] {
+  switch (status) {
+    case "IN_PROGRESS":
+      return ["in-progress"];
+    case "DRAFT":
+    case "RECRUITING":
+      return ["verifying"];
+    case "COMPLETED":
+    case "ARCHIVED":
+      return ["completed"];
+    default:
+      return [];
+  }
+}
+
+function snapshotPreview(md: string): string {
+  const lines = md
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith("#"));
+  return lines.slice(0, 3).join(" ").slice(0, 200);
+}
+
+function snapshotTitle(md: string): string {
+  // 첫 # 헤딩이 있으면 제목으로. 없으면 첫 줄 줄여서.
+  const first = md.split("\n").find((l) => l.trim().startsWith("#"));
+  if (first) return first.replace(/^#+\s*/, "").trim();
+  return md.split("\n")[0]?.slice(0, 40) ?? "프로젝트";
+}
+
+export async function fetchProjectFeed(): Promise<Project[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("projects")
+    .select(
+      `id,
+       status,
+       idea_snapshot_md,
+       leader:users!projects_leader_id_fkey ( nickname ),
+       ideas:ideas!projects_idea_id_fkey (
+         current_version_id,
+         idea_documents!ideas_current_version_id_fkey ( title )
+       )`,
+    )
+    .neq("status", "DELETED")
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  if (!data) return [];
+
+  return data.map((row): Project => {
+    const leader = Array.isArray(row.leader) ? row.leader[0] : row.leader;
+    const idea = Array.isArray(row.ideas) ? row.ideas[0] : row.ideas;
+    const doc = idea
+      ? Array.isArray(idea.idea_documents)
+        ? idea.idea_documents[0]
+        : idea.idea_documents
+      : null;
+    const title = doc?.title ?? snapshotTitle(row.idea_snapshot_md);
+    return {
+      id: String(row.id),
+      title,
+      subtitle: leader?.nickname ?? "",
+      description: snapshotPreview(row.idea_snapshot_md),
+      thumbnailUrl: null,
+      statuses: statusToChips(row.status),
+    };
+  });
+}
