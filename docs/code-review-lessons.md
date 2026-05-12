@@ -176,6 +176,39 @@ start.countDown();
 
 ---
 
+### A.6 외부 API 호출은 트랜잭션 밖에서 — ✅
+
+**출처**: PR #114 (CodeRabbit)
+
+**지적**: `SearchIdeasService.search` 가 `@Transactional(readOnly = true)` 안에서 `EmbeddingClient.embed(...)` (OpenAI API) 를 호출. read-only 라 부수효과는 없지만, 외부 호출이 응답까지 수백 ms ~ 수 초인데 그동안 **DB 커넥션을 점유** — 동시 검색이 늘면 커넥션 풀 고갈 위험. CLAUDE.md backend §"외부 호출" 도 "외부 API(LLM/PG) 호출은 트랜잭션 안에 두지 않는다" 라고 명시.
+
+**전**:
+```java
+@Transactional(readOnly = true)
+public List<IdeaSearchResult> search(String query, Integer requestedLimit) {
+    ...
+    float[] queryEmbedding = embeddingClient.embed(query.trim());  // 외부 호출 + 커넥션 점유
+    return embeddingRepo.searchPublishedByEmbedding(queryEmbedding, limit);
+}
+```
+
+**후**:
+```java
+// @Transactional 없음
+public List<IdeaSearchResult> search(String query, Integer requestedLimit) {
+    ...
+    float[] queryEmbedding = embeddingClient.embed(query.trim());  // 풀 밖
+    return embeddingRepo.searchPublishedByEmbedding(queryEmbedding, limit);
+    // ↑ Hibernate 가 단일 쿼리에 자동으로 짧은 트랜잭션을 열고 닫음
+}
+```
+
+**판단 근거**: read 한 줄짜리는 명시적 트랜잭션 없어도 Hibernate 가 단일-쿼리 트랜잭션을 자동 처리. 별도 빈 분리 (Spring AOP 의 self-invocation proxy 우회 패턴) 까지 갈 필요 없음 — 더 단순한 옵션부터 시도.
+
+**교훈**: 외부 호출 (LLM / PG / 이메일) 이 있는 service 메서드는 **기본적으로 `@Transactional` 을 안 박는다**. 그 후 DB 작업이 정합성 필요하면 (1) 외부 호출 결과만 갖고 별도 메서드 / 빈에 위임해 트랜잭션 열거나, (2) read 한 줄이면 Hibernate 자동 트랜잭션에 의지. read-only 도 예외 아님 — 커넥션 풀 부담은 부수효과 유무와 무관.
+
+---
+
 ## B. 도메인 가드 (코드 레이어)
 
 ### B.1 생성자에서 음수/범위 검증 — ✅
@@ -934,3 +967,4 @@ PR 별로 어떤 항목이 나왔는지 — 디버깅 / 머지 후 추적용.
 | #82 | 채택 CodeRabbit 후속 | B.3, C.1 (V5) |
 | #84 | 임베딩 실제 계산 (OpenAI + pgvector, ports/adapter 첫 적용) | H.1, H.2 |
 | #102 | PG webhook 멱등성 충전 흐름 | F.5 |
+| #114 | 아이디어 자연어 검색 API | A.6 |
