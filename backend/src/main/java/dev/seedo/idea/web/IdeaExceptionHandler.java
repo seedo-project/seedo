@@ -3,7 +3,9 @@ package dev.seedo.idea.web;
 import dev.seedo.common.web.ApiResponse;
 import dev.seedo.credit.application.InsufficientCreditException;
 import dev.seedo.idea.application.AlreadyPurchasedException;
+import dev.seedo.idea.application.ChatMessageEmptyException;
 import dev.seedo.idea.application.ChatSessionAccessDeniedException;
+import dev.seedo.idea.application.ChatSessionNotAcceptingMessagesException;
 import dev.seedo.idea.application.ChatSessionNotFinalizableException;
 import dev.seedo.idea.application.ChatSessionNotFoundException;
 import dev.seedo.idea.application.IdeaAccessDeniedException;
@@ -48,12 +50,19 @@ public class IdeaExceptionHandler {
         return error(HttpStatus.CONFLICT, e.getMessage());
     }
 
+    @ExceptionHandler(ChatSessionNotAcceptingMessagesException.class)
+    public ResponseEntity<ApiResponse<Void>> handleSessionNotAccepting(ChatSessionNotAcceptingMessagesException e) {
+        // FINALIZED / ABANDONED 세션은 더 이상 메시지 추가 불가 — 상태 충돌 = 409.
+        return error(HttpStatus.CONFLICT, e.getMessage());
+    }
+
     @ExceptionHandler({
             IdeaNotPurchasableException.class,
             SelfPurchaseException.class,
             ChatSessionNotFinalizableException.class,
             IdeaNotVersionableException.class,
-            SearchQueryEmptyException.class
+            SearchQueryEmptyException.class,
+            ChatMessageEmptyException.class
     })
     public ResponseEntity<ApiResponse<Void>> handleBadRequest(RuntimeException e) {
         return error(HttpStatus.BAD_REQUEST, e.getMessage());

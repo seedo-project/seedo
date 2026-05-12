@@ -209,6 +209,48 @@ public List<IdeaSearchResult> search(String query, Integer requestedLimit) {
 
 ---
 
+### A.7 외부 호출 후 상태 가드 재검증 (TOCTOU 회피) — ✅
+
+**출처**: PR #126 (CodeRabbit)
+
+**지적**: `SendChatMessageService.send` 가 세션 IN_PROGRESS 검증 (사전) → LLM 호출 (수 초 ~ 수십 초) → INSERT 흐름인데, LLM 호출 동안 다른 트랜잭션이 같은 세션을 finalize / abandon 하면 응답 시점엔 이미 종료된 세션. 사전 검증만으로는 race 가 열려 종료된 세션에도 메시지가 들어간다 (TOCTOU — Time Of Check vs Time Of Use).
+
+**전**:
+```java
+// 사전 검증
+if (session.getStatus() != IN_PROGRESS) throw ...;
+
+String assistantText = chatClient.complete(turns);  // 수 초
+
+tx.execute(s -> {
+    // 락 없음 + 재검증 없음 — race 통과
+    messageRepo.save(USER);
+    messageRepo.save(ASSISTANT);
+});
+```
+
+**후**:
+```java
+// 사전 검증 (빠른 거부 — LLM 비용 절감) 은 그대로 유지
+if (session.getStatus() != IN_PROGRESS) throw ...;
+
+String assistantText = chatClient.complete(turns);
+
+tx.execute(s -> {
+    // 락 + 재검증 — race 차단
+    IdeaChatSession locked = sessionRepo.findByIdForUpdate(sessionId).orElseThrow(...);
+    if (locked.getStatus() != IN_PROGRESS) throw ...;  // LLM 응답은 버려짐
+    messageRepo.save(USER);
+    messageRepo.save(ASSISTANT);
+});
+```
+
+**판단 근거**: 사전 검증 유지 이유 — 명백히 종료된 세션은 LLM 호출 자체를 안 해야 외부 비용 절감 + 응답 속도 ↑. INSERT 단계 재검증은 락 (PESSIMISTIC_WRITE) 으로 race 만 잡으면 충분. 동일 결의 lesson [A.3](#a3-같은-세션리소스에-대한-동시-호출-직렬화--) (finalize 측 락) 과 같은 패턴 — 같은 리소스의 모든 상태-의존 액션이 같은 락을 잡으면 직렬화.
+
+**교훈**: 외부 호출이 끼어있는 상태-전이 흐름은 **사전 가드 + 사후 락 재검증** 2-step 으로 짠다. 사전 가드는 UX / 비용용, 사후 재검증은 정합성용. 새 service 작성 시 self-check: "이 service 가 검증한 상태가 외부 호출 동안 바뀔 수 있나?" 한 번 더.
+
+---
+
 ## B. 도메인 가드 (코드 레이어)
 
 ### B.1 생성자에서 음수/범위 검증 — ✅
@@ -845,6 +887,8 @@ class PaymentWebhookControllerIT extends AbstractIntegrationTest { ... }
 
 **교훈**: controller IT 에 클래스 레벨 `@Transactional` 을 붙일지는 **테스트 시나리오가 단일 요청인가, 멀티 요청 (멱등성·재시도) 인가** 로 결정. 멀티 요청이면 빼고 UUID 격리. F.3 (동시성) + F.5 (멱등 재수신) 모두 동일 원리: "각 요청이 별개 트랜잭션이어야 운영을 재현."
 
+**재발 사례 (PR #126)**: `SendChatMessageControllerIT` 가 service 의 `TransactionTemplate.execute` 분리 패턴을 사용하는데, 작성자가 javadoc 에 "단일 요청 검증이라 F.5 해당 안 됨" 이라 적고 `@Transactional` 을 박았다. CodeRabbit 이 짚어줌. **service 가 자체 트랜잭션 경계를 분리한 경우에도 outer 와 join 되면 그 경계 자체가 검증 안 됨** — 단일 요청이라도 적용. self-check 룰 보강: "service 에 `TransactionTemplate` 또는 `REQUIRES_NEW` 가 보이면 controller IT 의 클래스 레벨 `@Transactional` 자동 금지."
+
 ---
 
 ## H. 외부 호출 / 통합
@@ -968,3 +1012,4 @@ PR 별로 어떤 항목이 나왔는지 — 디버깅 / 머지 후 추적용.
 | #84 | 임베딩 실제 계산 (OpenAI + pgvector, ports/adapter 첫 적용) | H.1, H.2 |
 | #102 | PG webhook 멱등성 충전 흐름 | F.5 |
 | #114 | 아이디어 자연어 검색 API | A.6 |
+| #126 | 챗봇 대화 BE — gpt-4o-mini 동기 응답 | A.7, F.5 (재발) |
