@@ -74,7 +74,11 @@ export function Navbar() {
           </nav>
           {user ? (
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 rounded-full border border-input bg-background px-3 py-1.5">
+              <Link
+                href="/credits"
+                aria-label="크레딧 잔액 / 거래 내역"
+                className="flex items-center gap-2 rounded-full border border-input bg-background px-3 py-1.5 transition-colors hover:bg-muted"
+              >
                 <span className="text-[13px] font-bold text-foreground">
                   {user.nickname}
                 </span>
@@ -83,7 +87,7 @@ export function Navbar() {
                   <CoinIcon className="size-3.5 text-primary" aria-hidden />
                   {user.creditBalance.toLocaleString()}
                 </span>
-              </div>
+              </Link>
               <Button
                 variant="ghost"
                 size="icon"
