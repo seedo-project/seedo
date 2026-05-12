@@ -10,6 +10,7 @@ import dev.seedo.idea.application.IdeaAccessDeniedException;
 import dev.seedo.idea.application.IdeaNotFoundException;
 import dev.seedo.idea.application.IdeaNotPurchasableException;
 import dev.seedo.idea.application.IdeaNotVersionableException;
+import dev.seedo.idea.application.SearchQueryEmptyException;
 import dev.seedo.idea.application.SelfPurchaseException;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -51,7 +52,8 @@ public class IdeaExceptionHandler {
             IdeaNotPurchasableException.class,
             SelfPurchaseException.class,
             ChatSessionNotFinalizableException.class,
-            IdeaNotVersionableException.class
+            IdeaNotVersionableException.class,
+            SearchQueryEmptyException.class
     })
     public ResponseEntity<ApiResponse<Void>> handleBadRequest(RuntimeException e) {
         return error(HttpStatus.BAD_REQUEST, e.getMessage());
