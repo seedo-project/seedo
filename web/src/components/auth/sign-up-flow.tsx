@@ -242,15 +242,22 @@ function InfoStep({ marketingConsent }: { marketingConsent: boolean }) {
     );
   })();
 
+  const passwordStatus = checkPasswordStatus(password);
+  const passwordMatch =
+    passwordConfirm.length === 0
+      ? "idle"
+      : password === passwordConfirm
+        ? "match"
+        : "mismatch";
+
   const isValid =
     name.trim().length > 0 &&
     nicknameStatus === "available" &&
     isValidBirthDate &&
     gender !== null &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) &&
-    password.length >= 8 &&
-    password.length <= 15 &&
-    password === passwordConfirm;
+    passwordStatus === "valid" &&
+    passwordMatch === "match";
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -374,20 +381,26 @@ function InfoStep({ marketingConsent }: { marketingConsent: boolean }) {
           />
         </FieldRow>
         <FieldRow label="비밀번호">
-          <PasswordInput
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="8-15자의 영문/숫자 또는 특수문자 조합"
-            autoComplete="new-password"
-          />
+          <div className="flex w-[276px] flex-col gap-1">
+            <PasswordInput
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="8-15자의 영문/숫자 또는 특수문자 조합"
+              autoComplete="new-password"
+            />
+            <PasswordStatusHint status={passwordStatus} />
+          </div>
         </FieldRow>
         <FieldRow label="비밀번호 확인">
-          <PasswordInput
-            value={passwordConfirm}
-            onChange={(e) => setPasswordConfirm(e.target.value)}
-            placeholder="비밀번호 재입력"
-            autoComplete="new-password"
-          />
+          <div className="flex w-[276px] flex-col gap-1">
+            <PasswordInput
+              value={passwordConfirm}
+              onChange={(e) => setPasswordConfirm(e.target.value)}
+              placeholder="비밀번호 재입력"
+              autoComplete="new-password"
+            />
+            <PasswordMatchHint status={passwordMatch} />
+          </div>
         </FieldRow>
       </div>
 
@@ -403,6 +416,52 @@ function InfoStep({ marketingConsent }: { marketingConsent: boolean }) {
         가입하기
       </PrimaryButton>
     </form>
+  );
+}
+
+type PasswordStatus = "idle" | "too-short" | "too-long" | "weak" | "valid";
+type PasswordMatch = "idle" | "match" | "mismatch";
+
+// 길이 8~15 + 영문/숫자/특수문자 중 2종 이상 조합.
+function checkPasswordStatus(pw: string): PasswordStatus {
+  if (pw.length === 0) return "idle";
+  if (pw.length < 8) return "too-short";
+  if (pw.length > 15) return "too-long";
+  const groups =
+    Number(/[a-zA-Z]/.test(pw)) +
+    Number(/\d/.test(pw)) +
+    Number(/[^a-zA-Z0-9]/.test(pw));
+  if (groups < 2) return "weak";
+  return "valid";
+}
+
+function PasswordStatusHint({ status }: { status: PasswordStatus }) {
+  const map: Record<PasswordStatus, { text: string; tone: string } | null> = {
+    idle: null,
+    "too-short": { text: "8자 이상 입력하세요", tone: "text-destructive" },
+    "too-long": { text: "15자까지 입력 가능합니다", tone: "text-destructive" },
+    weak: {
+      text: "영문/숫자/특수문자 중 2종 이상 조합해주세요",
+      tone: "text-destructive",
+    },
+    valid: { text: "사용 가능한 비밀번호입니다", tone: "text-emerald-600" },
+  };
+  const msg = map[status];
+  if (!msg) return null;
+  return <p className={`px-1 text-xs ${msg.tone}`}>{msg.text}</p>;
+}
+
+function PasswordMatchHint({ status }: { status: PasswordMatch }) {
+  if (status === "idle") return null;
+  const isMatch = status === "match";
+  return (
+    <p
+      className={`px-1 text-xs ${
+        isMatch ? "text-emerald-600" : "text-destructive"
+      }`}
+    >
+      {isMatch ? "비밀번호가 일치합니다" : "비밀번호가 일치하지 않습니다"}
+    </p>
   );
 }
 
