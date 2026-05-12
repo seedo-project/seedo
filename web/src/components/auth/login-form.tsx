@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "@/lib/toast";
 
 const schema = z.object({
   email: z.string().min(1, "아이디를 입력하세요"),
@@ -19,6 +21,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export function LoginForm() {
+  const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const {
     register,
@@ -40,9 +43,17 @@ export function LoginForm() {
     });
     if (signInError) {
       setError(signInError.message);
+      toast.error("로그인에 실패했습니다");
       return;
     }
-    window.location.href = "/idea";
+    toast.success("환영합니다");
+    // proxy 가 미인증 진입 시 ?redirect=원래경로 를 붙여줌. 안전한 내부 경로만 허용.
+    const redirectParam = searchParams?.get("redirect") ?? "";
+    const target = redirectParam.startsWith("/") && !redirectParam.startsWith("//")
+      ? redirectParam
+      : "/idea";
+    // 서버 cookies 동기화 위해 hard navigation.
+    window.location.href = target;
   };
 
   const remember = watch("remember") ?? false;
