@@ -9,11 +9,14 @@ import {
   useState,
 } from "react";
 
+import { resolveDisplayName } from "@/lib/auth-display";
 import { createClient } from "@/lib/supabase/client";
 
 export type AuthUser = {
   id: string;
   nickname: string;
+  /** UI 표시용 이름. 가입 시 입력한 name → 이메일 prefix → nickname(UUID fallback) 순. */
+  displayName: string;
   email: string;
   creditBalance: number;
 };
@@ -59,9 +62,11 @@ export function AuthProvider({
     ]);
 
     if (!profile) return null;
+    const metaName = (authUser.user_metadata ?? {})["name"];
     return {
       id: profile.id,
       nickname: profile.nickname,
+      displayName: resolveDisplayName(metaName, profile.email, profile.nickname),
       email: profile.email,
       creditBalance: Number(credits?.balance ?? 0),
     };

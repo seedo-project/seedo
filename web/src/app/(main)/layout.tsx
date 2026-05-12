@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/shared/navbar";
 import { AuthProvider, type AuthUser } from "@/contexts/auth-context";
+import { resolveDisplayName } from "@/lib/auth-display";
 import { createClient } from "@/lib/supabase/server";
 
 async function fetchInitialUser(): Promise<AuthUser | null> {
@@ -23,9 +24,11 @@ async function fetchInitialUser(): Promise<AuthUser | null> {
   ]);
 
   if (!profile) return null;
+  const metaName = (authUser.user_metadata ?? {})["name"];
   return {
     id: profile.id,
     nickname: profile.nickname,
+    displayName: resolveDisplayName(metaName, profile.email, profile.nickname),
     email: profile.email,
     creditBalance: Number(credits?.balance ?? 0),
   };
