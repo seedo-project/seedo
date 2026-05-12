@@ -3,7 +3,13 @@
 import { Eye } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { type FormEvent, type SVGProps, useEffect, useState } from "react";
+import {
+  type FormEvent,
+  type SVGProps,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { createClient } from "@/lib/supabase/client";
@@ -168,9 +174,22 @@ const GENDER_OPTIONS: { value: Gender; label: string; widthClass: string }[] = [
   { value: "unspecified", label: "밝히고 싶지 않음", widthClass: "flex-[1_0_0] min-w-px" },
 ];
 
+// 한글/영문/숫자/_ 만, 2~20자. 백엔드 V8 에서도 동일 정책 가정.
+const NICKNAME_PATTERN = /^[a-zA-Z0-9가-힣_]{2,20}$/;
+
+type NicknameStatus =
+  | "idle"
+  | "invalid-format"
+  | "checking"
+  | "available"
+  | "taken"
+  | "error";
+
 function InfoStep({ marketingConsent }: { marketingConsent: boolean }) {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [nicknameStatus, setNicknameStatus] = useState<NicknameStatus>("idle");
   const [year, setYear] = useState("");
   const [month, setMonth] = useState("");
   const [day, setDay] = useState("");
@@ -180,6 +199,33 @@ function InfoStep({ marketingConsent }: { marketingConsent: boolean }) {
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 닉네임 debounce + 중복 체크. public_profiles view (V7) 가 anon SELECT 허용.
+  const checkNickname = useCallback(async (value: string) => {
+    if (!NICKNAME_PATTERN.test(value)) {
+      setNicknameStatus(value === "" ? "idle" : "invalid-format");
+      return;
+    }
+    setNicknameStatus("checking");
+    const supabase = createClient();
+    const { data, error: e } = await supabase
+      .from("public_profiles")
+      .select("id")
+      .eq("nickname", value)
+      .maybeSingle();
+    if (e) {
+      setNicknameStatus("error");
+      return;
+    }
+    setNicknameStatus(data ? "taken" : "available");
+  }, []);
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      checkNickname(nickname.trim());
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [nickname, checkNickname]);
 
   const isValidBirthDate = (() => {
     if (!/^\d{4}$/.test(year) || !/^\d{1,2}$/.test(month) || !/^\d{1,2}$/.test(day)) {
@@ -198,6 +244,7 @@ function InfoStep({ marketingConsent }: { marketingConsent: boolean }) {
 
   const isValid =
     name.trim().length > 0 &&
+    nicknameStatus === "available" &&
     isValidBirthDate &&
     gender !== null &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) &&
@@ -217,6 +264,7 @@ function InfoStep({ marketingConsent }: { marketingConsent: boolean }) {
       options: {
         data: {
           name: name.trim(),
+          nickname: nickname.trim(),
           birth_date: `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`,
           gender,
           marketing_consent: marketingConsent,
@@ -225,8 +273,16 @@ function InfoStep({ marketingConsent }: { marketingConsent: boolean }) {
     });
     setSubmitting(false);
     if (signUpError) {
-      setError(signUpError.message);
-      toast.error("회원가입에 실패했습니다");
+      // 23505 (UNIQUE 위반) — race 로 사전 체크를 빠져나간 경우. 메시지 변환.
+      const msg = signUpError.message ?? "";
+      if (/duplicate|unique|already/i.test(msg)) {
+        setError("이미 사용 중인 닉네임 또는 이메일입니다");
+        setNicknameStatus("taken");
+        toast.error("이미 사용 중인 닉네임 또는 이메일입니다");
+      } else {
+        setError(msg);
+        toast.error("회원가입에 실패했습니다");
+      }
       return;
     }
     toast.success("가입이 완료되었습니다");
@@ -246,6 +302,19 @@ function InfoStep({ marketingConsent }: { marketingConsent: boolean }) {
             onChange={(e) => setName(e.target.value)}
             autoComplete="name"
           />
+        </FieldRow>
+
+        <FieldRow label="닉네임">
+          <div className="flex w-[276px] flex-col gap-1">
+            <TextInput
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="2~20자, 한글/영문/숫자/_"
+              maxLength={20}
+              autoComplete="nickname"
+            />
+            <NicknameStatusHint status={nicknameStatus} />
+          </div>
         </FieldRow>
 
         <FieldRow label="생년월일">
@@ -335,6 +404,32 @@ function InfoStep({ marketingConsent }: { marketingConsent: boolean }) {
       </PrimaryButton>
     </form>
   );
+}
+
+function NicknameStatusHint({ status }: { status: NicknameStatus }) {
+  const messages: Record<NicknameStatus, { text: string; tone: string } | null> = {
+    idle: null,
+    "invalid-format": {
+      text: "2~20자, 한글/영문/숫자/_ 만 사용 가능합니다",
+      tone: "text-destructive",
+    },
+    checking: { text: "확인 중...", tone: "text-muted-foreground" },
+    available: {
+      text: "사용 가능한 닉네임입니다",
+      tone: "text-emerald-600",
+    },
+    taken: {
+      text: "이미 사용 중인 닉네임입니다",
+      tone: "text-destructive",
+    },
+    error: {
+      text: "확인에 실패했습니다. 잠시 후 다시 시도해주세요",
+      tone: "text-destructive",
+    },
+  };
+  const msg = messages[status];
+  if (!msg) return null;
+  return <p className={`px-1 text-xs ${msg.tone}`}>{msg.text}</p>;
 }
 
 function FieldRow({
