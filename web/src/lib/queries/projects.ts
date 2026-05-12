@@ -40,8 +40,8 @@ export async function fetchProjectFeed(): Promise<Project[]> {
     .select(
       `id,
        status,
+       leader_id,
        idea_snapshot_md,
-       leader:users!projects_leader_id_fkey ( nickname ),
        ideas:ideas!projects_idea_id_fkey (
          current_version_id,
          idea_documents!ideas_current_version_id_fkey ( title )
@@ -54,8 +54,17 @@ export async function fetchProjectFeed(): Promise<Project[]> {
   if (error) throw error;
   if (!data) return [];
 
+  // public_profiles 는 view 라 embed 불가 — 별도 조회 후 join.
+  const leaderIds = Array.from(new Set(data.map((r) => r.leader_id)));
+  const { data: profiles } = await supabase
+    .from("public_profiles")
+    .select("id, nickname")
+    .in("id", leaderIds);
+  const profileMap = new Map<string, string>(
+    (profiles ?? []).map((p) => [p.id, p.nickname]),
+  );
+
   return data.map((row): Project => {
-    const leader = Array.isArray(row.leader) ? row.leader[0] : row.leader;
     const idea = Array.isArray(row.ideas) ? row.ideas[0] : row.ideas;
     const doc = idea
       ? Array.isArray(idea.idea_documents)
@@ -66,7 +75,7 @@ export async function fetchProjectFeed(): Promise<Project[]> {
     return {
       id: String(row.id),
       title,
-      subtitle: leader?.nickname ?? "",
+      subtitle: profileMap.get(row.leader_id) ?? "",
       description: snapshotPreview(row.idea_snapshot_md),
       thumbnailUrl: null,
       statuses: statusToChips(row.status),
