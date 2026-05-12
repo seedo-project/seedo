@@ -33,25 +33,31 @@ function EyeOffIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-const TERMS_TITLE = "서비스 이용약관동의(필수)";
-const TERMS_BODY = `개정일자 : 2026년 1월 29일
+const TERMS_TITLE = "Seedo 서비스 이용약관 (필수)";
+// TODO: 정식 약관 확정 후 본문 교체. 현재는 MVP 임시안.
+const TERMS_BODY = `개정일자: 2026년 5월 12일
+
 제1조 (목적)
-본 약관은 웍스피어 유한책임회사 (이하 "회사")가 운영하는 "서비스"를 이용함에 있어 "회사"와 회원간의 이용 조건 및 제반 절차, 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 한다.
+본 약관은 Seedo(이하 "서비스")를 이용함에 있어 운영자와 회원 간의 권리, 의무 및 책임사항, 이용 조건과 절차를 규정함을 목적으로 합니다.
+
 제2조 (용어의 정의)
-이 약관에서 사용하는 용어의 정의는 아래와 같다.
-① "사이트"라 함은 회사가 서비스를 "회원"에게 제공하기 위하여 컴퓨터 등 정보통신설비를 이용하여 설정한 가상의 영업장 또는 회사가 운영하는 웹사이트, 모바일웹, 앱 등의 서비스를 제공하는 모든 매체를 통칭하며, 통합된 하나의 회원 계정(아이디 및 비밀번호)을 이용하여 서비스를 제공받을 수 있는 아래의 사이트를 말한다.
-- www.jobkorea.co.kr
-- www.albamon.com
-- m.jobkorea.co.kr
-- m.albamon.com
-② "서비스"라 함은 회사가 운영하는 사이트를 통해 개인이 구직, 교육 등의 목적으로 등록하는 자료를 DB화하여 각각의 목적에 맞게 분류 가공, 집계하여 정보를 제공하는 서비스와 사이트에서 제공하는 모든 부대 서비스를 말한다.
-③ "회원"이라 함은 "회사"가 제공하는 서비스를 이용하거나 이용하려는 자로, 페이스북 등 외부서비스 연동을 통해 "회사"와 이용계약을 체결한자 또는 체결하려는 자를 포함하며, 아이디와 비밀번호의 설정 등 회원가입 절차를 거쳐 회원가입확인 이메일 등을 통해 회사로부터 회원으로 인정받은 "개인회원"을 말한다.
-④ "아이디"라 함은 회원가입시 회원의 식별과 회원의 서비스 이용을 위하여 회원이 선정하고 "회사"가 부여하는 문자와 숫자의 조합을 말한다.
-⑤ "비밀번호"라 함은 위 제4항에 따라 회원이 회원가입시 아이디를 설정하면서 아이디를 부여받은 자와 동일인임을 확인하고 "회원"의 권익을 보호하기 위하여 "회원"이 선정한 문자와 숫자의 조합을 말한다.
-⑥ "비회원"이라 함은 회원가입절차를 거치지 않고 "회사"가 제공하는 서비스를 이용하거나 하려 는 자를 말한다.
-제3조 (약관의 명시와 개정)
-① "회사"는 이 약관의 내용과 상호, 영업소 소재지, 대표자의 성명, 사업자등록번호, 연락처 등을 이용자가 알 수 있도록 초기 화면에 게시하거나 기타의 방법으로 이용자에게 공지해야 한다.
-② "회사"는 약관의 규제에 관한 법률, 전기통신기본법, 전기통신사업법, 정보통신망 이용촉진 및 정보보호 등에 관한 법률 등 관련법을 위배하지 않는 범위에서 이 약관을 개정할 수 있다.`;
+① "서비스"란 일상 속 아이디어를 정리하고, 개발자가 이를 채택해 프로젝트로 발전시킬 수 있도록 돕는 Seedo 플랫폼을 의미합니다.
+② "회원"이란 본 약관에 동의하고 회원가입 절차를 완료한 자를 말합니다.
+③ "아이디어"란 회원이 작성·발행한 기획 문서를 말하며, 다른 회원이 크레딧을 지불하고 열람·채택할 수 있습니다.
+④ "크레딧"이란 서비스 내에서 아이디어 구매·보상 등의 거래에 사용되는 가상의 단위를 말합니다.
+
+제3조 (회원의 권리와 의무)
+① 회원은 본인의 계정 정보를 안전하게 관리할 책임이 있습니다.
+② 회원은 타인의 권리를 침해하거나 법령에 위배되는 콘텐츠를 작성·배포할 수 없습니다.
+③ 회원은 본인이 작성한 아이디어에 대한 저작권을 보유하며, 서비스 운영을 위한 범위 내에서 운영자에게 이용권을 부여합니다.
+
+제4조 (크레딧 정책)
+① 크레딧은 충전·구매·채택 보상·관리자 조정을 통해 잔액이 변동되며, 모든 거래 내역은 보존됩니다.
+② 본인이 작성한 아이디어는 본인이 구매할 수 없습니다.
+③ 환불 정책은 별도 고지되는 기준에 따릅니다.
+
+제5조 (약관의 개정)
+운영자는 관련 법령을 준수하는 범위에서 본 약관을 개정할 수 있으며, 개정 시 사전에 공지합니다.`;
 
 type Step = "terms" | "info";
 
@@ -107,8 +113,14 @@ export function SignUpFlow() {
 }
 
 function TermsStep({ onNext }: { onNext: (marketing: boolean) => void }) {
-  const [allAgreed, setAllAgreed] = useState(false);
+  const [required, setRequired] = useState(false);
   const [marketing, setMarketing] = useState(false);
+
+  const allAgreed = required && marketing;
+  const toggleAll = (checked: boolean) => {
+    setRequired(checked);
+    setMarketing(checked);
+  };
 
   return (
     <div className="flex w-[400px] flex-col items-start gap-3">
@@ -125,38 +137,35 @@ function TermsStep({ onNext }: { onNext: (marketing: boolean) => void }) {
         <label className="flex cursor-pointer items-center gap-2 select-none">
           <Checkbox
             checked={allAgreed}
-            onCheckedChange={(v) => {
-              const checked = v === true;
-              setAllAgreed(checked);
-              setMarketing(checked);
-            }}
+            onCheckedChange={(v) => toggleAll(v === true)}
           />
-          <span className="text-sm leading-[1.5] tracking-[-0.35px] text-muted-foreground">
-            <span className="font-bold text-muted-foreground">전체동의</span>{" "}
-            <span className="font-medium">
-              (필수) 선택항목 포함 모든 약관에 동의합니다.
-            </span>
+          <span className="text-sm leading-[1.5] font-bold tracking-[-0.35px] text-foreground">
+            전체동의
+          </span>
+        </label>
+        <label className="flex cursor-pointer items-center gap-2 select-none">
+          <Checkbox
+            checked={required}
+            onCheckedChange={(v) => setRequired(v === true)}
+          />
+          <span className="text-sm leading-[1.5] font-medium tracking-[-0.35px] text-muted-foreground">
+            (필수) 서비스 이용약관에 동의합니다
           </span>
         </label>
         <label className="flex cursor-pointer items-center gap-2 select-none">
           <Checkbox
             checked={marketing}
-            onCheckedChange={(v) => {
-              const checked = v === true;
-              setMarketing(checked);
-              // 마케팅이 유일한 선택 항목이므로 allAgreed와 동기화
-              setAllAgreed(checked);
-            }}
+            onCheckedChange={(v) => setMarketing(v === true)}
           />
           <span className="text-sm leading-[1.5] font-medium tracking-[-0.35px] text-muted-foreground">
-            (선택) 광고성 정보 이메일/SMS 수신 동의
+            (선택) 광고성 정보 이메일/SMS 수신에 동의합니다
           </span>
         </label>
       </div>
 
       <PrimaryButton
         type="button"
-        disabled={!allAgreed}
+        disabled={!required}
         onClick={() => onNext(marketing)}
         className="self-center"
       >
