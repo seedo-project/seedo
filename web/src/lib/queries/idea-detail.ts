@@ -26,7 +26,6 @@ export async function fetchIdeaDetail(id: string): Promise<IdeaDetail> {
        status,
        created_at,
        current_version_id,
-       author:users!ideas_author_id_fkey ( nickname ),
        idea_documents!ideas_current_version_id_fkey ( title, content_md )`,
     )
     .eq("id", numericId)
@@ -39,21 +38,27 @@ export async function fetchIdeaDetail(id: string): Promise<IdeaDetail> {
   } = await supabase.auth.getUser();
   const isAuthor = !!authUser && authUser.id === idea.author_id;
 
-  let isPurchased = false;
-  if (authUser) {
-    const { data: purchase } = await supabase
-      .from("idea_purchases")
-      .select("id")
-      .eq("idea_id", numericId)
-      .eq("buyer_id", authUser.id)
-      .maybeSingle();
-    isPurchased = !!purchase;
-  }
+  // 작성자 닉네임은 public_profiles 뷰 (V7) 로 별도 조회 — view 라 embed 불가.
+  const [{ data: author }, purchaseResult] = await Promise.all([
+    supabase
+      .from("public_profiles")
+      .select("nickname")
+      .eq("id", idea.author_id)
+      .maybeSingle(),
+    authUser
+      ? supabase
+          .from("idea_purchases")
+          .select("id")
+          .eq("idea_id", numericId)
+          .eq("buyer_id", authUser.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const isPurchased = !!purchaseResult.data;
 
   const doc = Array.isArray(idea.idea_documents)
     ? idea.idea_documents[0]
     : idea.idea_documents;
-  const author = Array.isArray(idea.author) ? idea.author[0] : idea.author;
 
   // RLS 가 본문 차단 시 doc null — 구매 안내 메시지로 대체.
   const body =

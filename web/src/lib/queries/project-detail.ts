@@ -52,9 +52,9 @@ export async function fetchProjectDetail(id: string): Promise<ProjectDetail> {
     .select(
       `id,
        status,
+       leader_id,
        idea_snapshot_md,
        created_at,
-       leader:users!projects_leader_id_fkey ( nickname ),
        ideas:ideas!projects_idea_id_fkey (
          current_version_id,
          idea_documents!ideas_current_version_id_fkey ( title )
@@ -67,7 +67,12 @@ export async function fetchProjectDetail(id: string): Promise<ProjectDetail> {
 
   if (!data) notFound();
 
-  const leader = Array.isArray(data.leader) ? data.leader[0] : data.leader;
+  const { data: leader } = await supabase
+    .from("public_profiles")
+    .select("nickname")
+    .eq("id", data.leader_id)
+    .maybeSingle();
+
   const idea = Array.isArray(data.ideas) ? data.ideas[0] : data.ideas;
   const doc = idea
     ? Array.isArray(idea.idea_documents)
