@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -80,22 +81,26 @@ public class ChatSessionController {
                 result.createdAt());
     }
 
-    @PostMapping("/{id}/finalize")
+    @PostMapping(value = "/{id}/finalize", consumes = MediaType.ALL_VALUE)
     @PreAuthorize("hasAuthority('PERM_IDEA_CREATE')")
     @Operation(
-            summary = "챗봇 세션 finalize → 아이디어 발행",
+            summary = "챗봇 세션 finalize → LLM 이 기획문서 작성 + 아이디어 발행",
             description = """
                     IN_PROGRESS 상태의 챗봇 세션을 FINALIZED 로 전이시키며 새 아이디어를 생성한다.
 
-                    - `ideas` row INSERT (DRAFT) → `idea_documents` v1 INSERT → `ideas.current_version_id` 갱신
-                      → 세션 상태 FINALIZED — 한 트랜잭션에서 처리된다.
+                    - 본문(title / contentMd) 은 LLM(gpt-4o-mini) 이 지금까지의 대화 history 를 보고 자동 작성.
+                      클라이언트는 어떤 세션을 finalize 할지만 알려주면 된다 (요청 본문 불필요).
+                    - LLM 호출은 트랜잭션 밖에서 일어나고, 응답을 받은 뒤 한 트랜잭션에서 idea / document INSERT
+                      + 세션 FINALIZED 전이가 처리된다.
+                    - 빈 대화(메시지 0개) 인 세션은 hallucinate 회피를 위해 400 으로 거부.
                     - 다른 사용자의 세션은 finalize 할 수 없다 (403).
-                    - 이미 FINALIZED 또는 ABANDONED 상태인 세션은 재처리 불가 (400).
+                    - 이미 FINALIZED 또는 ABANDONED 인 세션은 재처리 불가 (400).
+                    - LLM 결과가 마음에 안 들면 finalize 이후 "새 버전 발행" 경로로 다듬을 수 있다.
                     """
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "finalize 성공. 생성된 ideaId / documentId / version(=1) 을 반환."),
-            @ApiResponse(responseCode = "400", description = "이미 FINALIZED / ABANDONED 인 세션 / 요청 본문 검증 실패", content = @Content),
+            @ApiResponse(responseCode = "400", description = "이미 FINALIZED / ABANDONED 인 세션 또는 대화 메시지가 없는 세션", content = @Content),
             @ApiResponse(responseCode = "401", description = "JWT 누락 또는 만료", content = @Content),
             @ApiResponse(responseCode = "403", description = "본인 세션이 아님 / PERM_IDEA_CREATE 권한 없음", content = @Content),
             @ApiResponse(responseCode = "404", description = "해당 챗봇 세션이 존재하지 않음", content = @Content)
@@ -103,10 +108,9 @@ public class ChatSessionController {
     public FinalizeChatSessionResponse finalize(
             @Parameter(description = "finalize 할 챗봇 세션 ID", example = "31", required = true)
             @PathVariable("id") Long sessionId,
-            @CurrentUserId UUID userId,
-            @Valid @RequestBody FinalizeChatSessionRequest req) {
+            @CurrentUserId UUID userId) {
         FinalizeChatSessionResult result = finalizeService.finalize(
-                new FinalizeChatSessionCommand(sessionId, userId, req.title(), req.contentMd()));
+                new FinalizeChatSessionCommand(sessionId, userId));
         return new FinalizeChatSessionResponse(result.ideaId(), result.documentId(), result.version());
     }
 }

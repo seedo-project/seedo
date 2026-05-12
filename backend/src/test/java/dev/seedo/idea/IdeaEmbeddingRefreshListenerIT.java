@@ -5,7 +5,10 @@ import dev.seedo.idea.application.FinalizeChatSessionService;
 import dev.seedo.idea.application.PublishIdeaVersionCommand;
 import dev.seedo.idea.application.PublishIdeaVersionService;
 import dev.seedo.idea.application.port.out.EmbeddingClient;
+import dev.seedo.idea.domain.ChatMessageRole;
+import dev.seedo.idea.domain.IdeaChatMessage;
 import dev.seedo.idea.domain.IdeaChatSession;
+import dev.seedo.idea.infrastructure.IdeaChatMessageRepository;
 import dev.seedo.idea.infrastructure.IdeaChatSessionRepository;
 import dev.seedo.support.AbstractIntegrationTest;
 import dev.seedo.support.UserFixture;
@@ -57,6 +60,9 @@ class IdeaEmbeddingRefreshListenerIT extends AbstractIntegrationTest {
     private IdeaChatSessionRepository sessionRepo;
 
     @Autowired
+    private IdeaChatMessageRepository messageRepo;
+
+    @Autowired
     private TransactionTemplate tx;
 
     @PersistenceContext
@@ -80,10 +86,10 @@ class IdeaEmbeddingRefreshListenerIT extends AbstractIntegrationTest {
     @Test
     void finalize_triggers_embedding_upsert_after_commit() {
         UUID user = tx.execute(s -> UserFixture.create(userRepo));
-        Long sessionId = tx.execute(s -> sessionRepo.saveAndFlush(new IdeaChatSession(user)).getId());
+        Long sessionId = setupSessionWithMessage(user, "대화 한 줄");
 
         Long ideaId = finalizeService.finalize(
-                new FinalizeChatSessionCommand(sessionId, user, "제목", "본문 마크다운")).ideaId();
+                new FinalizeChatSessionCommand(sessionId, user)).ideaId();
 
         // AFTER_COMMIT 리스너는 finalize 트랜잭션 commit 후 같은 스레드에서 동기 실행되지만,
         // 향후 비동기 분기 도입 대비 Awaitility 로 폴링.
@@ -91,18 +97,20 @@ class IdeaEmbeddingRefreshListenerIT extends AbstractIntegrationTest {
             assertThat(embeddingRowExists(ideaId)).isTrue();
             assertThat(firstDimension(ideaId)).isEqualTo(1.0f);
         });
-        verify(embeddingClient, atLeastOnce()).embed("본문 마크다운");
+        // finalize 본문은 ChatClient stub draft → "stub content markdown" 가 임베딩에 보내짐.
+        verify(embeddingClient, atLeastOnce()).embed("stub content markdown");
     }
 
     @Test
     void publish_triggers_embedding_upsert_overwriting_previous() {
         UUID user = tx.execute(s -> UserFixture.create(userRepo));
-        Long sessionId = tx.execute(s -> sessionRepo.saveAndFlush(new IdeaChatSession(user)).getId());
+        Long sessionId = setupSessionWithMessage(user, "초기 대화");
 
         Long ideaId = finalizeService.finalize(
-                new FinalizeChatSessionCommand(sessionId, user, "v1", "본문 v1")).ideaId();
+                new FinalizeChatSessionCommand(sessionId, user)).ideaId();
         await().untilAsserted(() -> assertThat(embeddingRowExists(ideaId)).isTrue());
 
+        // publish 는 클라가 보낸 새 버전 본문을 그대로 사용 (finalize 와 달리 LLM 합성 없음).
         publishService.publish(new PublishIdeaVersionCommand(ideaId, user, "v2", "본문 v2"));
 
         // upsert 동작 — 같은 idea_id 가 ON CONFLICT 로 UPDATE. 한 row 만 남는다.
@@ -110,25 +118,36 @@ class IdeaEmbeddingRefreshListenerIT extends AbstractIntegrationTest {
             assertThat(embeddingRowCount(ideaId)).isEqualTo(1L);
             assertThat(firstDimension(ideaId)).isEqualTo(1.0f);
         });
-        verify(embeddingClient).embed("본문 v1");
+        verify(embeddingClient).embed("stub content markdown");
         verify(embeddingClient).embed("본문 v2");
     }
 
     @Test
     void embedding_client_failure_does_not_break_user_flow() {
         UUID user = tx.execute(s -> UserFixture.create(userRepo));
-        Long sessionId = tx.execute(s -> sessionRepo.saveAndFlush(new IdeaChatSession(user)).getId());
+        Long sessionId = setupSessionWithMessage(user, "한 줄");
 
         doThrow(new RuntimeException("simulated OpenAI 503"))
                 .when(embeddingClient).embed(anyString());
 
         // 사용자 흐름 (finalize) 은 정상 commit, 예외 전파 안 됨
         Long ideaId = finalizeService.finalize(
-                new FinalizeChatSessionCommand(sessionId, user, "t", "c")).ideaId();
+                new FinalizeChatSessionCommand(sessionId, user)).ideaId();
         assertThat(ideaId).isPositive();
 
         // 임베딩 row 는 생성되지 않음 (listener 가 swallow)
         assertThat(embeddingRowExists(ideaId)).isFalse();
+    }
+
+    /**
+     * #127 로 finalize 가 빈 chat history 를 거부하므로 모든 IT 셋업이 메시지 1개를 미리 INSERT 한다.
+     */
+    private Long setupSessionWithMessage(UUID user, String message) {
+        return tx.execute(s -> {
+            IdeaChatSession session = sessionRepo.saveAndFlush(new IdeaChatSession(user));
+            messageRepo.saveAndFlush(new IdeaChatMessage(session.getId(), ChatMessageRole.USER, message));
+            return session.getId();
+        });
     }
 
     private boolean embeddingRowExists(Long ideaId) {

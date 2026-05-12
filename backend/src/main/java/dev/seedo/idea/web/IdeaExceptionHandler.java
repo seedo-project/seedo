@@ -8,6 +8,7 @@ import dev.seedo.idea.application.ChatSessionAccessDeniedException;
 import dev.seedo.idea.application.ChatSessionNotAcceptingMessagesException;
 import dev.seedo.idea.application.ChatSessionNotFinalizableException;
 import dev.seedo.idea.application.ChatSessionNotFoundException;
+import dev.seedo.idea.application.EmptyChatHistoryException;
 import dev.seedo.idea.application.IdeaAccessDeniedException;
 import dev.seedo.idea.application.IdeaNotFoundException;
 import dev.seedo.idea.application.IdeaNotPurchasableException;
@@ -62,7 +63,8 @@ public class IdeaExceptionHandler {
             ChatSessionNotFinalizableException.class,
             IdeaNotVersionableException.class,
             SearchQueryEmptyException.class,
-            ChatMessageEmptyException.class
+            ChatMessageEmptyException.class,
+            EmptyChatHistoryException.class
     })
     public ResponseEntity<ApiResponse<Void>> handleBadRequest(RuntimeException e) {
         return error(HttpStatus.BAD_REQUEST, e.getMessage());
