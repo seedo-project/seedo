@@ -11,6 +11,7 @@ export type IdeaDetail = {
   body: string;
   isAuthor: boolean;
   isPurchased: boolean;
+  rewardCredits: number;
 };
 
 export async function fetchIdeaDetail(id: string): Promise<IdeaDetail> {
@@ -26,6 +27,7 @@ export async function fetchIdeaDetail(id: string): Promise<IdeaDetail> {
        status,
        created_at,
        current_version_id,
+       reward_credits,
        idea_documents!ideas_current_version_id_fkey ( title, content_md )`,
     )
     .eq("id", numericId)
@@ -74,5 +76,6 @@ export async function fetchIdeaDetail(id: string): Promise<IdeaDetail> {
     body,
     isAuthor,
     isPurchased,
+    rewardCredits: Number(idea.reward_credits ?? 0),
   };
 }

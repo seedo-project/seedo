@@ -1,3 +1,4 @@
+import { AdoptButton } from "@/components/idea/adopt-button";
 import { fetchIdeaDetail } from "@/lib/queries/idea-detail";
 
 export default async function IdeaDetailPage({
@@ -7,6 +8,7 @@ export default async function IdeaDetailPage({
 }) {
   const { id } = await params;
   const idea = await fetchIdeaDetail(id);
+  const canAdopt = idea.isAuthor || idea.isPurchased;
 
   return (
     <main className="mx-auto w-[820px] pt-8 pb-16">
@@ -16,15 +18,11 @@ export default async function IdeaDetailPage({
             <h1 className="text-2xl leading-[1.5] font-bold tracking-[-0.6px] text-foreground">
               {idea.title}
             </h1>
-            <button
-              type="button"
-              disabled
-              aria-disabled="true"
-              title="프로젝트 시작 — 채택 트랜잭션 별도 작업"
-              className="flex h-9 cursor-not-allowed items-center justify-center rounded-md bg-primary px-4 py-2 text-sm leading-[1.3] font-semibold tracking-[-0.35px] whitespace-nowrap text-primary-foreground opacity-50"
-            >
-              프로젝트 시작하기
-            </button>
+            <AdoptButton
+              ideaId={idea.id}
+              canAdopt={canAdopt}
+              rewardCredits={idea.rewardCredits}
+            />
           </div>
           <div className="flex items-center gap-2 text-sm leading-[1.5] font-medium tracking-[-0.35px] text-muted-foreground">
             <span>{idea.authorName}</span>
