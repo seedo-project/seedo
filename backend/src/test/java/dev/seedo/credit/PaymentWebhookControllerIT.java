@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -29,9 +28,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *
  * <p>JwtDecoder 모킹이 없는 이유: webhook 경로는 SecurityConfig 가 permitAll 처리하므로 JWT 검증 자체가
  * 안 일어난다.
+ *
+ * <p>클래스 레벨 {@code @Transactional} 을 쓰지 않는 이유: MockMvc 는 같은 JVM 의 dispatcher 를 호출해
+ * 테스트 트랜잭션을 그대로 join 한다 (propagation REQUIRED). 그 상태에서 같은 {@code paymentId} 로
+ * 두 번 호출하면 두 번째가 1st-level cache 로 첫 INSERT 를 보고 idempotent skip — 운영에서는 첫 트랜잭션
+ * commit 후 두 번째 별개 트랜잭션이 DB UNIQUE 가드로 잡아내는 흐름과 메커니즘이 다르다.
+ * {@link ChargeCreditServiceIT} 와 동일하게 매 테스트가 새 UUID 로 사용자/{@code paymentId} 를 만들어
+ * row-level 로 격리한다.
  */
 @AutoConfigureMockMvc
-@Transactional
 class PaymentWebhookControllerIT extends AbstractIntegrationTest {
 
     private static final String PATH = "/api/v1/webhooks/payments/portone";
