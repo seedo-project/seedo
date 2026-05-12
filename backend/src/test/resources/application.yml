@@ -21,3 +21,8 @@ spring:
 
 server:
   port: 0
+
+# 결제 webhook 임시 시크릿 — IT 에서 고정값으로 매칭 검증.
+payment:
+  webhook:
+    secret: test-webhook-secret

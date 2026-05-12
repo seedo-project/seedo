@@ -777,6 +777,43 @@ class ConcurrencyIT extends AbstractIntegrationTest {
 
 ---
 
+### F.5 멱등성 검증 controller IT 에 클래스 레벨 `@Transactional` 금지 — ✅
+
+**출처**: PR #102 (CodeRabbit)
+
+**지적**: webhook 재수신 시나리오에서 같은 paymentId 로 MockMvc POST 를 두 번 부르는데, 클래스 레벨 `@Transactional` 이 붙어있으면 두 번째 호출이 **1st-level cache** 로 첫 INSERT 를 본다. 운영에서는 첫 트랜잭션 commit 후 두 번째 별개 트랜잭션이 **DB UNIQUE 가드** 로 잡아내는 흐름과 메커니즘이 다르다 — 검증 신뢰도가 떨어진다.
+
+**근본 원인**: MockMvc 는 같은 JVM 의 dispatcher servlet 을 직접 호출 → 새 HTTP 트랜잭션이 아니라 테스트 트랜잭션을 그대로 join (PROPAGATION_REQUIRED 기본). `@Transactional(propagation = REQUIRED)` 인 service 호출도 새 트랜잭션을 시작하지 않고 기존 테스트 트랜잭션에 참여.
+
+**전**:
+```java
+@AutoConfigureMockMvc
+@Transactional
+class PaymentWebhookControllerIT extends AbstractIntegrationTest {
+    @Test
+    void same_paymentId_twice_charges_once() {
+        // 두 perform() 호출이 같은 트랜잭션 — 1st-level cache 로 멱등 잡힘
+        mockMvc.perform(post(PATH).content(payload)).andExpect(... "CHARGED");
+        mockMvc.perform(post(PATH).content(payload)).andExpect(... "DUPLICATE");
+    }
+}
+```
+
+**후**:
+```java
+@AutoConfigureMockMvc
+// 클래스 레벨 @Transactional 없음 — 두 perform() 이 각자 commit 되어
+// 두 번째 호출이 DB UNIQUE 인덱스로 멱등 잡는 운영 경로 재현.
+// 격리는 매 테스트가 새 UUID 로 사용자/paymentId 만들어 row-level.
+class PaymentWebhookControllerIT extends AbstractIntegrationTest { ... }
+```
+
+**판단 근거**: F.3 의 동시성 IT 케이스와 같은 결 — controller IT 라도 "여러 트랜잭션 사이 가시성" 을 검증해야 하면 클래스 레벨 `@Transactional` 을 빼야 한다. ChargeCreditServiceIT 가 이미 같은 패턴 (UUID row-level 격리).
+
+**교훈**: controller IT 에 클래스 레벨 `@Transactional` 을 붙일지는 **테스트 시나리오가 단일 요청인가, 멀티 요청 (멱등성·재시도) 인가** 로 결정. 멀티 요청이면 빼고 UUID 격리. F.3 (동시성) + F.5 (멱등 재수신) 모두 동일 원리: "각 요청이 별개 트랜잭션이어야 운영을 재현."
+
+---
+
 ## H. 외부 호출 / 통합
 
 WebClient / Resilience4j / ports-adapter 같은 외부 시스템 호출 어댑터 패턴에서의 함정.
@@ -896,3 +933,4 @@ PR 별로 어떤 항목이 나왔는지 — 디버깅 / 머지 후 추적용.
 | #81 | 채택 + 보상 | B.3, C.1, C.2, D.3 |
 | #82 | 채택 CodeRabbit 후속 | B.3, C.1 (V5) |
 | #84 | 임베딩 실제 계산 (OpenAI + pgvector, ports/adapter 첫 적용) | H.1, H.2 |
+| #102 | PG webhook 멱등성 충전 흐름 | F.5 |
