@@ -1,10 +1,11 @@
 "use client";
 
-import { Coins, LogIn, LogOut } from "lucide-react";
+import { LogIn, LogOut } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
+import { CoinIcon } from "@/components/idea/idea-icons";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "@/lib/toast";
@@ -79,7 +80,7 @@ export function Navbar() {
                 </span>
                 <span className="h-3 w-px bg-input" aria-hidden />
                 <span className="flex items-center gap-1 text-[13px] font-medium text-muted-foreground">
-                  <Coins className="size-3.5 text-primary" aria-hidden />
+                  <CoinIcon className="size-3.5 text-primary" aria-hidden />
                   {user.creditBalance.toLocaleString()}
                 </span>
               </div>
