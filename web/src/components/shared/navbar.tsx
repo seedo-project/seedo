@@ -25,8 +25,8 @@ export function Navbar() {
     pathname === it.href || pathname.startsWith(`${it.href}/`),
   )?.key;
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     toast.success("로그아웃되었습니다");
     router.push("/login");
   };

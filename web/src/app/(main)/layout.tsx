@@ -1,13 +1,44 @@
 import { Navbar } from "@/components/shared/navbar";
-import { AuthProvider } from "@/contexts/auth-context";
+import { AuthProvider, type AuthUser } from "@/contexts/auth-context";
+import { createClient } from "@/lib/supabase/server";
 
-export default function MainLayout({
+async function fetchInitialUser(): Promise<AuthUser | null> {
+  const supabase = await createClient();
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+  if (!authUser) return null;
+
+  const [{ data: profile }, { data: credits }] = await Promise.all([
+    supabase
+      .from("users")
+      .select("id, nickname, email")
+      .eq("id", authUser.id)
+      .maybeSingle(),
+    supabase
+      .from("user_credits")
+      .select("balance")
+      .eq("user_id", authUser.id)
+      .maybeSingle(),
+  ]);
+
+  if (!profile) return null;
+  return {
+    id: profile.id,
+    nickname: profile.nickname,
+    email: profile.email,
+    creditBalance: Number(credits?.balance ?? 0),
+  };
+}
+
+export default async function MainLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const initialUser = await fetchInitialUser();
   return (
-    <AuthProvider>
+    <AuthProvider initialUser={initialUser}>
       <Navbar />
       {children}
     </AuthProvider>
