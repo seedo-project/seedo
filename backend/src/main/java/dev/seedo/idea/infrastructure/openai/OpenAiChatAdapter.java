@@ -12,6 +12,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -53,7 +54,9 @@ public class OpenAiChatAdapter implements ChatClient {
         List<Map<String, String>> messages = turns.stream()
                 .map(t -> Map.of(
                         // OpenAI 표준 role 표기는 소문자 — user/assistant/system. enum.name() 을 소문자화해서 일치.
-                        "role", t.role().name().toLowerCase(),
+                        // Locale.ROOT 명시 — 우리 enum 은 ASCII 라 터키 locale 'I' → 'ı' 같은 함정에 안 걸리지만,
+                        // 정적 분석 / future-proofing 차원에서 일관 적용.
+                        "role", t.role().name().toLowerCase(Locale.ROOT),
                         "content", t.content()
                 ))
                 .toList();

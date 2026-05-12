@@ -22,7 +22,6 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -39,12 +38,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * {@code POST /api/v1/chat-sessions/{id}/messages} HTTP 통합 — 인증, @PreAuthorize, service, advice 봉투까지
  * 한 줄로 흐르는지. {@link dev.seedo.idea.application.port.out.ChatClient} 는 stub 빈 (결정적 응답).
  *
- * <p>클래스 레벨 {@code @Transactional} — service 의 {@code TransactionTemplate.execute} 는 outer 테스트
- * 트랜잭션을 PROPAGATION_REQUIRED 로 join 하므로 INSERT 결과가 같은 트랜잭션에서 조회 가능. 단일 요청
- * 검증이라 lessons F.5 의 "멀티 트랜잭션 가시성" 시나리오에 해당하지 않음.
+ * <p>클래스 레벨 {@code @Transactional} 을 쓰지 않는다 (lessons F.5). service 가 {@code TransactionTemplate.execute}
+ * 로 분리한 짧은 INSERT 트랜잭션이 운영처럼 실제 commit 되어야 흐름이 정확히 재현된다 — outer 테스트
+ * 트랜잭션과 join 되면 service 의 트랜잭션 경계 자체가 검증되지 않는다. 격리는 매 테스트가 새 UUID 의
+ * 사용자 / 새 idea_id 를 만드는 row-level 격리로 충분 (PaymentWebhookControllerIT 와 동일 패턴).
  */
 @AutoConfigureMockMvc
-@Transactional
 class SendChatMessageControllerIT extends AbstractIntegrationTest {
 
     private static final String BEARER = "Bearer test-token";

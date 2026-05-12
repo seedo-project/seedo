@@ -20,15 +20,20 @@ import java.util.List;
  * <p>흐름:
  * <ol>
  *   <li>입력 검증 — 빈/공백 → {@link ChatMessageEmptyException}</li>
- *   <li>세션 lookup + 권한·상태 가드 (404 / 403 / 409)</li>
+ *   <li>사전 가드 — 세션 lookup + 권한·상태 검증 (404 / 403 / 409). 명백히 종료된 세션이면 LLM 호출 자체를
+ *       하지 않고 빠르게 거부 (외부 비용 절감 + 응답 시간 ↓).</li>
  *   <li>지난 메시지 시간순 조회 → 시스템 프롬프트 + history + 새 USER 로 컨텍스트 빌드</li>
  *   <li>{@link ChatClient} 호출 — <b>트랜잭션 밖</b> (lessons A.6: DB 커넥션 점유 회피)</li>
- *   <li>USER + ASSISTANT 두 row 를 {@link TransactionTemplate} 안에서 한 트랜잭션으로 INSERT.
- *       LLM 호출 자체가 실패하면 이 단계는 도달 안 함 — USER 도 안 들어가 사용자가 재시도하면 깨끗한 상태.</li>
+ *   <li>{@link TransactionTemplate} 안에서 <b>세션 row 락 + 상태 재검증</b> 후 USER + ASSISTANT 두 row INSERT.
+ *       LLM 호출 동안 다른 트랜잭션이 finalize / abandon 했을 가능성 (TOCTOU) 을 락으로 잡는다.</li>
  * </ol>
  *
  * <p>메서드에 {@code @Transactional} 을 안 박는다 — LLM 호출이 트랜잭션 안에 들어가면 응답까지 (수 초)
- * DB 커넥션을 점유한다. 동시 챗봇 호출이 늘 때 커넥션 풀 고갈 위험.
+ * DB 커넥션을 점유한다. 동시 챗봇 호출이 늘 때 커넥션 풀 고갈 위험 (lessons A.6).
+ *
+ * <p>가드 재검증 (사전 + INSERT 단계) 두 번 하는 이유: 사전 가드는 사용자 체감 응답 시간을 위해, INSERT 단계
+ * 재검증은 lessons A.3 (상태 전이 리소스 PESSIMISTIC_WRITE) 로 race 차단. race 경로에 도달한 LLM 응답은
+ * 버려진다 — 극히 드물지만, 정합성 우선.
  */
 @Service
 public class SendChatMessageService {
@@ -79,8 +84,15 @@ public class SendChatMessageService {
         // 외부 호출 — 트랜잭션 밖. 실패 시 예외 전파, 아래 INSERT 도달 안 함.
         String assistantText = chatClient.complete(turns);
 
-        // INSERT 는 한 트랜잭션 — 둘 중 하나만 들어가는 부분 실패 회피.
+        // INSERT 트랜잭션: 세션 row 락 + 상태 재검증 → 두 row INSERT.
+        // LLM 호출 동안 (수 초) 다른 트랜잭션이 finalize / abandon 한 race 를 락으로 차단.
         IdeaChatMessage assistant = tx.execute(status -> {
+            IdeaChatSession locked = sessionRepo.findByIdForUpdate(cmd.sessionId())
+                    .orElseThrow(() -> new ChatSessionNotFoundException(cmd.sessionId()));
+            // 사전 가드를 통과한 세션 + 동일 user → 본인 검증은 사전과 동치 (소유자 변경 경로 없음). status 만 재확인.
+            if (locked.getStatus() != ChatSessionStatus.IN_PROGRESS) {
+                throw new ChatSessionNotAcceptingMessagesException(cmd.sessionId(), locked.getStatus());
+            }
             messageRepo.save(new IdeaChatMessage(cmd.sessionId(), ChatMessageRole.USER, userText));
             return messageRepo.save(new IdeaChatMessage(cmd.sessionId(), ChatMessageRole.ASSISTANT, assistantText));
         });
