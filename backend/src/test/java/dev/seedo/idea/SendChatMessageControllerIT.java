@@ -6,7 +6,10 @@ import dev.seedo.idea.domain.IdeaChatMessage;
 import dev.seedo.idea.domain.IdeaChatSession;
 import dev.seedo.idea.infrastructure.IdeaChatMessageRepository;
 import dev.seedo.idea.infrastructure.IdeaChatSessionRepository;
+import dev.seedo.idea.infrastructure.IdeaDocumentRepository;
+import dev.seedo.idea.infrastructure.IdeaRepository;
 import dev.seedo.support.AbstractIntegrationTest;
+import dev.seedo.support.IdeaFixture;
 import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
@@ -63,6 +66,12 @@ class SendChatMessageControllerIT extends AbstractIntegrationTest {
 
     @Autowired
     private IdeaChatMessageRepository messageRepo;
+
+    @Autowired
+    private IdeaRepository ideaRepo;
+
+    @Autowired
+    private IdeaDocumentRepository docRepo;
 
     @PersistenceContext
     private EntityManager em;
@@ -127,8 +136,10 @@ class SendChatMessageControllerIT extends AbstractIntegrationTest {
     @Test
     void finalized_session_returns_409_and_does_not_persist() throws Exception {
         UUID user = createUserWithRole();
+        // idea_chat_sessions.idea_id 는 ideas 에 FK — 실제 row 만들어 셋업.
+        Long ideaId = IdeaFixture.createPublished(ideaRepo, docRepo, user, 10, 5).getId();
         IdeaChatSession session = new IdeaChatSession(user);
-        session.finalize(123L);  // 도메인 메서드로 IN_PROGRESS → FINALIZED 전이
+        session.finalize(ideaId);
         Long sessionId = sessionRepo.saveAndFlush(session).getId();
         primeAuth(user);
 
