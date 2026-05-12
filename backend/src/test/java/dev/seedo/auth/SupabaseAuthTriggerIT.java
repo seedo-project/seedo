@@ -31,6 +31,16 @@ class SupabaseAuthTriggerIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void v8_marked_success_in_flyway_history() {
+        // V8 도 auth 스키마 가드 — Testcontainers 에선 함수 본문 갱신이 일어나지 않지만
+        // 마이그레이션 자체는 성공 처리되어야 한다.
+        assertThat(exists(
+                "SELECT 1 FROM flyway_schema_history " +
+                "WHERE version = '8' AND success = true"
+        )).as("V8 must be applied successfully").isTrue();
+    }
+
+    @Test
     void auth_schema_absent_on_testcontainers() {
         assertThat(exists(
                 "SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth'"
