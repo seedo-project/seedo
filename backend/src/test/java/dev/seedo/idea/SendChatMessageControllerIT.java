@@ -22,6 +22,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 import java.util.Map;
@@ -71,6 +72,9 @@ class SendChatMessageControllerIT extends AbstractIntegrationTest {
 
     @Autowired
     private IdeaDocumentRepository docRepo;
+
+    @Autowired
+    private TransactionTemplate tx;
 
     @PersistenceContext
     private EntityManager em;
@@ -188,6 +192,9 @@ class SendChatMessageControllerIT extends AbstractIntegrationTest {
     }
 
     private UUID createUserWithRole() {
-        return UserFixture.createWithRole(userRepo, em, 1L);
+        // UserFixture.createWithRole 내부에서 em.createNativeQuery(...).executeUpdate() 가 트랜잭션을
+        // 요구한다. 클래스 레벨 @Transactional 을 안 쓰는 IT 라 명시 트랜잭션 안에서 실행
+        // (IdeaEmbeddingRefreshListenerIT 와 동일 패턴).
+        return tx.execute(status -> UserFixture.createWithRole(userRepo, em, 1L));
     }
 }
