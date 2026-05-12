@@ -23,6 +23,8 @@ spring:
         jwt:
           jwk-set-uri: ${SUPABASE_JWKS_URL}
           issuer-uri: ${SUPABASE_JWT_ISSUER}
+          # Supabase 신규 프로젝트는 ES256 비대칭 키 발급 (jwks.json 확인). Spring 기본은 RS256.
+          jws-algorithms: [ES256, RS256]
 
 server:
   port: 8080
