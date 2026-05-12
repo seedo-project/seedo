@@ -80,11 +80,11 @@ export function Navbar() {
                 className="flex items-center gap-2 rounded-full border border-input bg-background px-3 py-1.5 transition-colors hover:bg-muted"
               >
                 <span className="text-[13px] font-bold text-foreground">
-                  {user.nickname}
+                  {user.displayName}
                 </span>
                 <span className="h-3 w-px bg-input" aria-hidden />
                 <span className="flex items-center gap-1 text-[13px] font-medium text-muted-foreground">
-                  <CoinIcon className="size-3.5 text-primary" aria-hidden />
+                  <CoinIcon className="size-3.5 text-yellow-400" aria-hidden />
                   {user.creditBalance.toLocaleString()}
                 </span>
               </Link>
