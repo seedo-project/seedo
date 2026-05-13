@@ -10,11 +10,19 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "@/lib/toast";
 
 function tableFor(target: CommentTarget) {
-  return target === "idea" ? "idea_comments" : "project_comments";
+  return target === "idea"
+    ? "idea_comments"
+    : target === "project"
+      ? "project_comments"
+      : "post_comments";
 }
 
 function targetColFor(target: CommentTarget) {
-  return target === "idea" ? "idea_id" : "project_id";
+  return target === "idea"
+    ? "idea_id"
+    : target === "project"
+      ? "project_id"
+      : "post_id";
 }
 
 const MAX_LEN = 2000;
