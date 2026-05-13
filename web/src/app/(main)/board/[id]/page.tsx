@@ -1,8 +1,10 @@
 import { CommentSection } from "@/components/shared/comment-section";
 import { POST_TYPES } from "@/components/post/post-card";
+import { PostApplicantsList } from "@/components/post/post-applicants-list";
 import { PostApplyCta } from "@/components/post/post-apply-cta";
 import { fetchComments } from "@/lib/queries/comments";
 import { fetchPostApplicationState } from "@/lib/queries/post-application";
+import { fetchPostApplicants } from "@/lib/queries/post-applicants";
 import { fetchPostDetail } from "@/lib/queries/posts";
 
 export default async function BoardDetailPage({
@@ -13,13 +15,16 @@ export default async function BoardDetailPage({
   const { id } = await params;
   const post = await fetchPostDetail(id);
   const postIdNum = Number(post.id);
-  const showApply =
+  const isRecruit =
     post.postType === "BETA_RECRUIT" || post.postType === "DEV_RECRUIT";
-  const [comments, application] = await Promise.all([
+  const showApply = isRecruit && !post.isAuthor;
+  const showApplicants = isRecruit && post.isAuthor;
+  const [comments, application, applicants] = await Promise.all([
     fetchComments("post", postIdNum),
     showApply
       ? fetchPostApplicationState(postIdNum)
       : Promise.resolve({ applied: false }),
+    showApplicants ? fetchPostApplicants(postIdNum) : Promise.resolve([]),
   ]);
 
   const typeLabel =
@@ -54,6 +59,10 @@ export default async function BoardDetailPage({
         <article className="overflow-y-auto rounded-md border border-border p-4 text-base leading-[1.5] tracking-[-0.4px] whitespace-pre-line text-muted-foreground">
           {post.body}
         </article>
+
+        {showApplicants ? (
+          <PostApplicantsList applicants={applicants} />
+        ) : null}
 
         <CommentSection
           target="post"
