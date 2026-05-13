@@ -6,11 +6,14 @@ import dev.seedo.idea.application.ChatSessionNotFoundException;
 import dev.seedo.idea.application.FinalizeChatSessionCommand;
 import dev.seedo.idea.application.FinalizeChatSessionResult;
 import dev.seedo.idea.application.FinalizeChatSessionService;
+import dev.seedo.idea.domain.ChatMessageRole;
 import dev.seedo.idea.domain.ChatSessionStatus;
 import dev.seedo.idea.domain.Idea;
+import dev.seedo.idea.domain.IdeaChatMessage;
 import dev.seedo.idea.domain.IdeaChatSession;
 import dev.seedo.idea.domain.IdeaDocument;
 import dev.seedo.idea.domain.IdeaStatus;
+import dev.seedo.idea.infrastructure.IdeaChatMessageRepository;
 import dev.seedo.idea.infrastructure.IdeaChatSessionRepository;
 import dev.seedo.idea.infrastructure.IdeaDocumentRepository;
 import dev.seedo.idea.infrastructure.IdeaRepository;
@@ -63,6 +66,9 @@ class FinalizeChatSessionServiceIT extends AbstractIntegrationTest {
     private IdeaChatSessionRepository sessionRepo;
 
     @Autowired
+    private IdeaChatMessageRepository messageRepo;
+
+    @Autowired
     private TransactionTemplate tx;
 
     @PersistenceContext
@@ -73,7 +79,7 @@ class FinalizeChatSessionServiceIT extends AbstractIntegrationTest {
         Fixture f = setupSession();
 
         FinalizeChatSessionResult result = service.finalize(
-                new FinalizeChatSessionCommand(f.sessionId, f.user, "제목", "본문 마크다운"));
+                new FinalizeChatSessionCommand(f.sessionId, f.user));
 
         Idea idea = ideaRepo.findById(result.ideaId()).orElseThrow();
         assertThat(idea.getStatus()).isEqualTo(IdeaStatus.DRAFT);
@@ -82,11 +88,12 @@ class FinalizeChatSessionServiceIT extends AbstractIntegrationTest {
         assertThat(idea.getPriceCredits()).isEqualTo(10);
         assertThat(idea.getRewardCredits()).isEqualTo(5);
 
+        // ChatClient stub draft 가 그대로 저장.
         IdeaDocument doc = documentRepo.findById(result.documentId()).orElseThrow();
         assertThat(doc.getIdeaId()).isEqualTo(idea.getId());
         assertThat(doc.getVersion()).isEqualTo(1);
-        assertThat(doc.getTitle()).isEqualTo("제목");
-        assertThat(doc.getContentMd()).isEqualTo("본문 마크다운");
+        assertThat(doc.getTitle()).isEqualTo("stub title");
+        assertThat(doc.getContentMd()).isEqualTo("stub content markdown");
 
         IdeaChatSession reloaded = sessionRepo.findById(f.sessionId).orElseThrow();
         assertThat(reloaded.getStatus()).isEqualTo(ChatSessionStatus.FINALIZED);
@@ -99,10 +106,10 @@ class FinalizeChatSessionServiceIT extends AbstractIntegrationTest {
     void non_owner_is_denied() {
         UUID owner = tx.execute(s -> UserFixture.create(userRepo));
         UUID intruder = tx.execute(s -> UserFixture.create(userRepo));
-        Long sessionId = tx.execute(s -> sessionRepo.saveAndFlush(new IdeaChatSession(owner)).getId());
+        Long sessionId = setupSessionWithMessage(owner, "hi");
 
         assertThatThrownBy(() -> service.finalize(
-                new FinalizeChatSessionCommand(sessionId, intruder, "t", "c")))
+                new FinalizeChatSessionCommand(sessionId, intruder)))
                 .isInstanceOf(ChatSessionAccessDeniedException.class);
 
         // 어떤 부수효과도 발생하지 않아야 한다 — 세션은 IN_PROGRESS, 이 세션 소유주의 idea 0 개.
@@ -115,10 +122,10 @@ class FinalizeChatSessionServiceIT extends AbstractIntegrationTest {
     @Test
     void already_finalized_session_cannot_be_finalized_again() {
         Fixture f = setupSession();
-        service.finalize(new FinalizeChatSessionCommand(f.sessionId, f.user, "t1", "c1"));
+        service.finalize(new FinalizeChatSessionCommand(f.sessionId, f.user));
 
         assertThatThrownBy(() -> service.finalize(
-                new FinalizeChatSessionCommand(f.sessionId, f.user, "t2", "c2")))
+                new FinalizeChatSessionCommand(f.sessionId, f.user)))
                 .isInstanceOf(ChatSessionNotFinalizableException.class);
     }
 
@@ -133,7 +140,7 @@ class FinalizeChatSessionServiceIT extends AbstractIntegrationTest {
         });
 
         assertThatThrownBy(() -> service.finalize(
-                new FinalizeChatSessionCommand(sessionId, user, "t", "c")))
+                new FinalizeChatSessionCommand(sessionId, user)))
                 .isInstanceOf(ChatSessionNotFinalizableException.class);
     }
 
@@ -142,7 +149,7 @@ class FinalizeChatSessionServiceIT extends AbstractIntegrationTest {
         UUID user = tx.execute(s -> UserFixture.create(userRepo));
 
         assertThatThrownBy(() -> service.finalize(
-                new FinalizeChatSessionCommand(999_999L, user, "t", "c")))
+                new FinalizeChatSessionCommand(999_999L, user)))
                 .isInstanceOf(ChatSessionNotFoundException.class);
     }
 
@@ -171,12 +178,12 @@ class FinalizeChatSessionServiceIT extends AbstractIntegrationTest {
             Future<FinalizeChatSessionResult> a = exec.submit(() -> {
                 ready.countDown();
                 start.await();
-                return service.finalize(new FinalizeChatSessionCommand(f.sessionId, f.user, "t1", "c1"));
+                return service.finalize(new FinalizeChatSessionCommand(f.sessionId, f.user));
             });
             Future<FinalizeChatSessionResult> b = exec.submit(() -> {
                 ready.countDown();
                 start.await();
-                return service.finalize(new FinalizeChatSessionCommand(f.sessionId, f.user, "t2", "c2"));
+                return service.finalize(new FinalizeChatSessionCommand(f.sessionId, f.user));
             });
             assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
             start.countDown();
@@ -216,8 +223,18 @@ class FinalizeChatSessionServiceIT extends AbstractIntegrationTest {
     private Fixture setupSession() {
         return tx.execute(status -> {
             UUID user = UserFixture.create(userRepo);
-            Long sessionId = sessionRepo.saveAndFlush(new IdeaChatSession(user)).getId();
-            return new Fixture(user, sessionId);
+            IdeaChatSession session = sessionRepo.saveAndFlush(new IdeaChatSession(user));
+            // #127 로 finalize 가 빈 chat history 를 400 으로 거부하므로 메시지 1 개 미리 INSERT.
+            messageRepo.saveAndFlush(new IdeaChatMessage(session.getId(), ChatMessageRole.USER, "초기 메시지"));
+            return new Fixture(user, session.getId());
+        });
+    }
+
+    private Long setupSessionWithMessage(UUID user, String text) {
+        return tx.execute(s -> {
+            IdeaChatSession session = sessionRepo.saveAndFlush(new IdeaChatSession(user));
+            messageRepo.saveAndFlush(new IdeaChatMessage(session.getId(), ChatMessageRole.USER, text));
+            return session.getId();
         });
     }
 
