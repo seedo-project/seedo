@@ -561,6 +561,34 @@ END $$;
 
 ---
 
+### C.7 SQL `DISTINCT` 는 순서 보장 안 함 — Java collection 과 일치 깨짐 — ✅
+
+**출처**: PR #148 (V17 keywords backfill)
+
+**지적**: Java 의 `LinkedHashSet` 으로 정규화한 키워드 (첫 등장 순서 보존) 와 같은 의미론으로 backfill SQL 을 짜려고 `SELECT DISTINCT btrim(lower(k)) FROM unnest(keywords) AS k` 를 썼는데, PG 의 `DISTINCT` 는 hash/sort 처리라 결과 순서가 비결정적. 운영 backfill 후 카드 키워드 칩의 노출 순서가 LLM 추천 순서에서 무작위로 뒤바뀔 위험.
+
+**우리 선택**: `unnest(keywords) WITH ORDINALITY AS t(k, ord)` 로 입력 인덱스를 보존하고, `GROUP BY btrim(lower(t.k))` + `ORDER BY MIN(t.ord)` 로 정규화 후 첫 등장 순서로 정렬. Java 의 LinkedHashSet 의미론과 정확히 일치.
+
+```sql
+ARRAY(
+    SELECT d.normalized
+    FROM (
+        SELECT btrim(lower(t.k)) AS normalized,
+               MIN(t.ord)        AS first_ord
+        FROM unnest(keywords) WITH ORDINALITY AS t(k, ord)
+        WHERE btrim(t.k) <> ''
+        GROUP BY btrim(lower(t.k))
+    ) d
+    ORDER BY d.first_ord
+)
+```
+
+**교훈**: **Java collection 의 의미론을 SQL 로 옮길 때 "순서 보존" 이 깨지면 자동으로 같은 의미가 안 된다**. `LinkedHashSet` ↔ `WITH ORDINALITY + GROUP BY + ORDER BY MIN(ord)`, `HashSet` ↔ `DISTINCT` 정도가 안전한 매핑. 운영 영향이 사용자 노출 (키워드 순서 = 카드 칩 순서) 에 직접 닿는 경우 특히 주의.
+
+self-check: SQL 에 `DISTINCT` 를 쓸 때 — Java 측 collection 이 `LinkedHashSet` 이거나 결과 순서가 노출에 영향이 있는지 먼저 확인.
+
+---
+
 ## D. 에러 핸들링 / HTTP 매핑
 
 ### D.1 `@ExceptionHandler` 에 `@ResponseStatus` 조합 금지 — ✅

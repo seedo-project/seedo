@@ -5,7 +5,10 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -88,15 +91,43 @@ public class IdeaEmbeddingRepositoryImpl implements IdeaEmbeddingRepositoryCusto
 
     @Override
     public void upsertEmbedding(long ideaId, float[] embedding, List<String> keywords) {
-        boolean hasKeywords = keywords != null && !keywords.isEmpty();
+        List<String> normalized = normalizeKeywords(keywords);
+        boolean hasKeywords = !normalized.isEmpty();
         String sql = hasKeywords ? UPSERT_WITH_KEYWORDS_SQL : UPSERT_EMBEDDING_ONLY_SQL;
         var query = em.createNativeQuery(sql)
                 .setParameter("ideaId", ideaId)
                 .setParameter("embedding", toVectorLiteral(embedding));
         if (hasKeywords) {
-            query.setParameter("keywords", toTextArrayLiteral(keywords));
+            query.setParameter("keywords", toTextArrayLiteral(normalized));
         }
         query.executeUpdate();
+    }
+
+    /**
+     * 키워드 저장 정규화 — lower-case + trim + 빈 문자열 제외 + 중복 제거 (#147).
+     *
+     * <p>검색 측 {@code SearchIdeasService#tokenize} 가 쿼리를 lower-case 토큰으로 만들기 때문에,
+     * 저장 측도 같은 케이스로 박혀야 키워드 매칭이 의도대로 동작한다 (영어 키워드 "iOS" ↔ 쿼리 "ios").
+     * 한국어 명사는 lower-case 가 no-op 이라 영향 없음.
+     *
+     * <p>저장의 마지막 게이트라 어댑터 / IT 직접 upsert 모두 자동 정규화. caller 가 잊거나 다른 진입점이
+     * 추가돼도 매칭 정합성이 깨지지 않는다.
+     */
+    private static List<String> normalizeKeywords(List<String> keywords) {
+        if (keywords == null || keywords.isEmpty()) {
+            return List.of();
+        }
+        LinkedHashSet<String> unique = new LinkedHashSet<>(keywords.size());
+        for (String raw : keywords) {
+            if (raw == null) {
+                continue;
+            }
+            String trimmed = raw.trim().toLowerCase(Locale.ROOT);
+            if (!trimmed.isEmpty()) {
+                unique.add(trimmed);
+            }
+        }
+        return new ArrayList<>(unique);
     }
 
     @Override
