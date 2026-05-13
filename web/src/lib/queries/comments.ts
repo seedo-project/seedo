@@ -1,6 +1,8 @@
+import { commentTable, commentTargetCol } from "@/lib/comments-target";
+import type { CommentTarget } from "@/lib/comments-target";
 import { createClient } from "@/lib/supabase/server";
 
-export type CommentTarget = "idea" | "project" | "post";
+export type { CommentTarget };
 
 export type CommentItem = {
   id: number;
@@ -12,22 +14,6 @@ export type CommentItem = {
   isAuthor: boolean;
 };
 
-function tableFor(target: CommentTarget) {
-  return target === "idea"
-    ? "idea_comments"
-    : target === "project"
-      ? "project_comments"
-      : "post_comments";
-}
-
-function targetColFor(target: CommentTarget) {
-  return target === "idea"
-    ? "idea_id"
-    : target === "project"
-      ? "project_id"
-      : "post_id";
-}
-
 export async function fetchComments(
   target: CommentTarget,
   targetId: number,
@@ -38,9 +24,9 @@ export async function fetchComments(
   } = await supabase.auth.getUser();
 
   const { data: rows, error: rowsError } = await supabase
-    .from(tableFor(target))
+    .from(commentTable(target))
     .select("id, author_id, content, created_at, updated_at")
-    .eq(targetColFor(target), targetId)
+    .eq(commentTargetCol(target), targetId)
     .is("deleted_at", null)
     .order("created_at", { ascending: true });
   if (rowsError) throw rowsError;
@@ -69,5 +55,3 @@ export async function fetchComments(
     isAuthor: !!user && user.id === c.author_id,
   }));
 }
-
-export { tableFor as commentTable, targetColFor as commentTargetCol };
