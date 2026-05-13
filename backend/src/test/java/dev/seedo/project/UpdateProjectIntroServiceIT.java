@@ -1,5 +1,6 @@
 package dev.seedo.project;
 
+import dev.seedo.project.application.ProjectIntroBlankFieldException;
 import dev.seedo.project.application.ProjectLeaderOnlyException;
 import dev.seedo.project.application.ProjectNotEditableException;
 import dev.seedo.project.application.ProjectNotFoundException;
@@ -107,6 +108,29 @@ class UpdateProjectIntroServiceIT extends AbstractIntegrationTest {
                 new UpdateProjectIntroCommand(null, "박제 후 수정", null, null)))
                 .isInstanceOfSatisfying(ProjectNotEditableException.class, ex ->
                         assertThat(ex.getStatus()).isEqualTo(ProjectStatus.ARCHIVED));
+    }
+
+    @Test
+    void blank_title_after_publish_is_rejected() {
+        // publish 후 IN_PROGRESS 상태에서 title 을 공백으로 덮어 비우려는 우회 경로 (CodeRabbit #141).
+        // 도메인 단 blank 가드 → 400 으로 매핑되는 ProjectIntroBlankFieldException.
+        Fixture f = setupDraft();
+        service.update(f.projectId, f.leader, new UpdateProjectIntroCommand(null, "t", "d", null));
+        // 직접 publish 호출 대신 도메인 메서드 — fixture 한 줄 절약.
+        projectRepo.findById(f.projectId).orElseThrow().publish();
+
+        assertThatThrownBy(() -> service.update(f.projectId, f.leader,
+                new UpdateProjectIntroCommand(null, "   ", null, null)))
+                .isInstanceOf(ProjectIntroBlankFieldException.class);
+    }
+
+    @Test
+    void blank_description_is_rejected() {
+        Fixture f = setupDraft();
+
+        assertThatThrownBy(() -> service.update(f.projectId, f.leader,
+                new UpdateProjectIntroCommand(null, null, "", null)))
+                .isInstanceOf(ProjectIntroBlankFieldException.class);
     }
 
     @Test

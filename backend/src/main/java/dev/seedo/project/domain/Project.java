@@ -89,6 +89,10 @@ public class Project extends BaseEntity {
     /**
      * LEADER 가 작성한 4 항목을 부분 수정 — null 인 필드는 변경하지 않는다 (#140).
      *
+     * <p>title / description 은 blank 도 거부 — 한 번 publish 후 IN_PROGRESS 상태에서 공백으로 덮어
+     * 사실상 비우는 우회를 차단한다 (CodeRabbit #141). V15 의 chk_projects_published_fields 는
+     * NOT NULL 만 보므로 blank 문자열을 통과시키는 hole 이 있었다.
+     *
      * <p>상태 가드는 호출자 (service) 가 검증한다 — 도메인은 단순히 값만 갱신. ARCHIVED / DELETED 인
      * 프로젝트 표지가 바뀌면 안 되는 정책 결정은 application 레이어에서.
      */
@@ -97,9 +101,15 @@ public class Project extends BaseEntity {
             this.coverImageUrl = coverImageUrl;
         }
         if (title != null) {
+            if (title.isBlank()) {
+                throw new IllegalArgumentException("title must not be blank");
+            }
             this.title = title;
         }
         if (description != null) {
+            if (description.isBlank()) {
+                throw new IllegalArgumentException("description must not be blank");
+            }
             this.description = description;
         }
         if (guideMd != null) {

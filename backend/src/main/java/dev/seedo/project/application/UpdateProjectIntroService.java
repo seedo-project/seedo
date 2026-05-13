@@ -46,7 +46,12 @@ public class UpdateProjectIntroService {
             throw new ProjectNotEditableException(projectId, status);
         }
 
-        project.updateIntro(cmd.coverImageUrl(), cmd.title(), cmd.description(), cmd.guideMd());
+        try {
+            project.updateIntro(cmd.coverImageUrl(), cmd.title(), cmd.description(), cmd.guideMd());
+        } catch (IllegalArgumentException e) {
+            // 도메인 단 blank 가드 (Project#updateIntro) — 400 으로 매핑하도록 변환 (CodeRabbit #141).
+            throw new ProjectIntroBlankFieldException(projectId, e.getMessage());
+        }
         return project;
     }
 }

@@ -4,6 +4,7 @@ import dev.seedo.common.web.ApiResponse;
 import dev.seedo.idea.application.IdeaNotFoundException;
 import dev.seedo.project.application.AdoptionRequiresPurchaseException;
 import dev.seedo.project.application.IdeaNotAdoptableException;
+import dev.seedo.project.application.ProjectIntroBlankFieldException;
 import dev.seedo.project.application.ProjectLeaderOnlyException;
 import dev.seedo.project.application.ProjectNotEditableException;
 import dev.seedo.project.application.ProjectNotFoundException;
@@ -36,7 +37,7 @@ public class ProjectExceptionHandler {
     }
 
     @ExceptionHandler({IdeaNotAdoptableException.class, AdoptionRequiresPurchaseException.class,
-            ProjectPublishMissingFieldsException.class})
+            ProjectPublishMissingFieldsException.class, ProjectIntroBlankFieldException.class})
     public ResponseEntity<ApiResponse<Void>> handleBadRequest(RuntimeException e) {
         return error(HttpStatus.BAD_REQUEST, e.getMessage());
     }

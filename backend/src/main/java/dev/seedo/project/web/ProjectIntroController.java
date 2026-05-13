@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,6 +32,7 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/projects")
+@PreAuthorize("isAuthenticated()")
 @Tag(name = "프로젝트 소개", description = "프로젝트 표지 4 항목 (대표이미지 / 제목 / 설명 / 가이드) 작성 + 공개.")
 public class ProjectIntroController {
 
