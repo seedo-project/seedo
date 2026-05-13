@@ -368,6 +368,38 @@ public record CreditAmount(long value) {
 
 ---
 
+### B.5 partial-update 메서드는 null 뿐 아니라 blank 도 거부 — ✅
+
+**출처**: PR #141 (Project.updateIntro)
+
+**지적**: `updateIntro(String title, String description, ...)` 가 null 인 필드는 변경하지 않는 부분 수정 시맨틱인데, `publish()` 가 NOT NULL + non-blank 를 강제하는 것과 달리 `updateIntro()` 는 blank 문자열 (`""`, `"   "`) 을 그대로 통과시켰다. publish 후 IN_PROGRESS 상태에서 다시 `updateIntro({title: "   "})` 을 호출하면 사실상 표지 필수 필드를 비우는 우회 경로가 됐다. DB 의 `chk_projects_published_fields` 는 NOT NULL 만 보므로 blank 는 못 막는다.
+
+**우리 선택**: 도메인 메서드에서 blank 거부 (`IllegalArgumentException`) + service 에서 잡아 typed 비즈니스 예외 (`ProjectIntroBlankFieldException`, 400) 로 변환. IT 2건 추가:
+- publish 후 IN_PROGRESS 에서 공백 (`"   "`) 으로 덮어쓰기 시도 → 거부
+- DRAFT 에서 빈 문자열 (`""`) description → 거부
+
+```java
+public void updateIntro(String coverImageUrl, String title, String description, String guideMd) {
+    if (title != null) {
+        if (title.isBlank()) {
+            throw new IllegalArgumentException("title must not be blank");
+        }
+        this.title = title;
+    }
+    if (description != null) {
+        if (description.isBlank()) {
+            throw new IllegalArgumentException("description must not be blank");
+        }
+        this.description = description;
+    }
+    // ...
+}
+```
+
+**교훈**: "null = 변경 안 함" 시맨틱의 부분 수정 메서드는 blank 도 같은 카테고리로 거부해야 일관된다. 한 번 채워진 필수 필드를 비울 수 있는 우회 경로는 publish-time 검증을 무력화한다. **DB CHECK 의 NOT NULL 은 blank 까지 못 막는다는 사실을 잊지 말 것** — char_length BETWEEN 1 AND N 같은 CHECK 가 정말 비어있음 가드를 한다면 도메인은 그걸 신뢰할 수 있지만, 단순 NOT NULL 만 있으면 blank 가드는 도메인 책임.
+
+---
+
 ## C. DB 가드 (마이그레이션)
 
 ### C.1 partial UNIQUE 로 "유일한 활성 row" 강제 — ✅
@@ -512,6 +544,20 @@ END $$;
 ```
 
 **교훈**: PG 마이그레이션의 멱등성 가드 (`IF NOT EXISTS` 류) 는 항상 **소속 객체 + 종류** 까지 한정. constraint 면 `conrelid + contype`, 인덱스면 `tablename + indexname` (`pg_indexes` 사용), 트리거면 `tgrelid + tgname`. constraint name 이름만 의지하면 동명 충돌 시 silent skip 되어 무결성 사고로 이어진다.
+
+---
+
+### C.6 RLS 의 `FOR SELECT TO public USING (true)` 는 owned-row 노출 — ⏳ (#142 후속)
+
+**출처**: PR #141 (project_scraps RLS)
+
+**지적**: `project_scraps_public_select` 를 `USING (true)` 로 열면 모든 사용자의 `user_id`-`project_id` 스크랩 관계가 익명에게 노출된다. 카운트 표시 / 내 토글 여부 조회가 supabase-js 직결로 동작해야 해서 `USING (true)` 가 편리하지만, 동시에 "누가 어떤 프로젝트를 스크랩했는지" 가 추적·프로파일링 가능해진다.
+
+**우리 선택**: 이번 PR (#141) 은 V12 hypes 와의 일관성을 우선해 같은 패턴 유지 — hypes 도 정확히 같은 노출 hole 을 갖고 있었으므로 양 테이블을 동시에 정리하는 별도 PR (#142) 로 분리. 거기서 `USING (user_id = auth.uid())` 로 owned-row 만 본인 조회로 좁히고, 카운트는 별도 view / RPC 로 노출.
+
+**교훈**: **owned-record 의 RLS public SELECT 는 카운트 노출 편의를 위해 쓰지 말 것**. 카운트가 필요하면 view / RPC 로 집계만 노출하는 게 정석. `USING (user_id = auth.uid())` 가 owned-record 의 기본형. 새 RLS 가 들어갈 때 `(true)` 가 떠오르면 stop — view 가 더 맞는지 먼저 묻기.
+
+코딩 가이드라인 (`backend/src/main/resources/db/migration/**/*.sql`): RLS policies use patterns: `USING (user_id = auth.uid())` for owned records.
 
 ---
 
@@ -671,6 +717,28 @@ public ResponseEntity<ApiResponse<Void>> handle(InsufficientCreditException e) {
 ```
 
 **교훈**: 도메인의 일반 예외 (`IllegalArgumentException`, `IllegalStateException`) 를 비즈니스 시나리오 (`InsufficientCreditException`, `IdeaNotAdoptableException`) 로 변환해 typed 매핑. 5xx vs 4xx 가 정확히 갈린다.
+
+---
+
+### D.6 보안 정책은 주석 대신 어노테이션으로 표현 — ✅
+
+**출처**: PR #141 (ProjectIntroController)
+
+**지적**: 컨트롤러 javadoc 에 "`@PreAuthorize("isAuthenticated()")` 만 두고 LEADER 검증은 service 에서 한다" 라고 적었지만 실제 어노테이션은 안 박혀 있었다. SecurityFilterChain 이 익명 요청을 막아주긴 하지만, 권한 정책이 한 곳에서 안 읽히고 주석↔코드 불일치라 보안 정책 누락의 빌미가 된다.
+
+**우리 선택**: 클래스 레벨에 `@PreAuthorize("isAuthenticated()")` 실제 적용. AdoptIdeaController 의 `hasAuthority('PERM_PROJECT_CREATE')` 와 같은 위치·표현 컨벤션 정렬.
+
+```java
+@RestController
+@RequestMapping("/projects")
+@PreAuthorize("isAuthenticated()")
+@Tag(name = "프로젝트 소개", description = "...")
+public class ProjectIntroController { ... }
+```
+
+**교훈**: 보안 가드는 **항상 어노테이션으로 표현**, 주석으로만 둘 것 없음. SecurityFilterChain 이 보호한다는 사실이 있어도 컨트롤러에 명시되면 (1) 권한 정책이 한 파일 안에서 읽히고, (2) `@EnableMethodSecurity` 같은 메서드 보안이 켜져 있는지 자동 검증되며, (3) 도메인별 권한 (PERM_*, isAuthenticated, hasRole) 의 일관성을 확인하기 쉽다.
+
+self-check: "javadoc 에 권한 / 인증 / `@PreAuthorize` 가 언급되면 그게 실제 어노테이션으로 박혀 있는지 확인".
 
 ---
 

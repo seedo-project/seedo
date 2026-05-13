@@ -46,6 +46,20 @@ public class Project extends BaseEntity {
     @Column(name = "idea_snapshot_md", nullable = false, updatable = false)
     private String ideaSnapshotMd;
 
+    // 채택 시점엔 비어 있다가 LEADER 가 직접 채우는 4 항목 (#140). publish 시 title / description 은 필수,
+    // cover_image_url / guide_md 는 선택. V15 의 chk_projects_published_fields 가 DB 단 최후 가드.
+    @Column(name = "cover_image_url", length = 500)
+    private String coverImageUrl;
+
+    @Column(name = "title", length = 200)
+    private String title;
+
+    @Column(name = "description")
+    private String description;
+
+    @Column(name = "guide_md")
+    private String guideMd;
+
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
 
@@ -70,6 +84,55 @@ public class Project extends BaseEntity {
             throw new IllegalStateException("recruit requires DRAFT, was " + status);
         }
         this.status = ProjectStatus.RECRUITING;
+    }
+
+    /**
+     * LEADER 가 작성한 4 항목을 부분 수정 — null 인 필드는 변경하지 않는다 (#140).
+     *
+     * <p>title / description 은 blank 도 거부 — 한 번 publish 후 IN_PROGRESS 상태에서 공백으로 덮어
+     * 사실상 비우는 우회를 차단한다 (CodeRabbit #141). V15 의 chk_projects_published_fields 는
+     * NOT NULL 만 보므로 blank 문자열을 통과시키는 hole 이 있었다.
+     *
+     * <p>상태 가드는 호출자 (service) 가 검증한다 — 도메인은 단순히 값만 갱신. ARCHIVED / DELETED 인
+     * 프로젝트 표지가 바뀌면 안 되는 정책 결정은 application 레이어에서.
+     */
+    public void updateIntro(String coverImageUrl, String title, String description, String guideMd) {
+        if (coverImageUrl != null) {
+            this.coverImageUrl = coverImageUrl;
+        }
+        if (title != null) {
+            if (title.isBlank()) {
+                throw new IllegalArgumentException("title must not be blank");
+            }
+            this.title = title;
+        }
+        if (description != null) {
+            if (description.isBlank()) {
+                throw new IllegalArgumentException("description must not be blank");
+            }
+            this.description = description;
+        }
+        if (guideMd != null) {
+            this.guideMd = guideMd;
+        }
+    }
+
+    /**
+     * 명시적 공개 — DRAFT → IN_PROGRESS (#140).
+     *
+     * <p>모집 흐름을 별도로 두지 않으므로 RECRUITING 을 건너뛴다 (#140 의 정책 결정). title 과 description
+     * 이 채워져 있어야 하며 — V15 의 chk_projects_published_fields 가 DB 단 최후 가드.
+     *
+     * <p>cover_image_url / guide_md 는 선택 — 비어 있어도 공개 가능.
+     */
+    public void publish() {
+        if (status != ProjectStatus.DRAFT) {
+            throw new IllegalStateException("publish requires DRAFT, was " + status);
+        }
+        if (title == null || title.isBlank() || description == null || description.isBlank()) {
+            throw new IllegalStateException("publish requires title and description to be set");
+        }
+        this.status = ProjectStatus.IN_PROGRESS;
     }
 
     public void start() {
@@ -120,6 +183,22 @@ public class Project extends BaseEntity {
 
     public String getIdeaSnapshotMd() {
         return ideaSnapshotMd;
+    }
+
+    public String getCoverImageUrl() {
+        return coverImageUrl;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public String getGuideMd() {
+        return guideMd;
     }
 
     public OffsetDateTime getDeletedAt() {
