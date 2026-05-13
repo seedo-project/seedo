@@ -86,8 +86,10 @@ class IdeaSearchControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.status").value("OK"))
                 .andExpect(jsonPath("$.data.length()").value(3))
                 .andExpect(jsonPath("$.data[0].ideaId").value(ideaB))
-                // RRF 점수의 절대값은 해석하지 않는다 — 단지 양수이고, ideaA/C 보다 더 크다는 사실만 검증.
-                .andExpect(jsonPath("$.data[0].score").value(org.hamcrest.Matchers.greaterThan(0.0)))
+                // RRF 점수의 절대값은 해석하지 않는다 (호출자도 정렬 순서만 사용) — 필드가 number 로
+                // 직렬화되는지만 확인. greaterThan(0.0) 같은 Matcher 는 Jayway 가 BigDecimal 로 추출할 때
+                // Double 캐스트 실패로 ClassCastException 이 나는 알려진 함정이라 피한다.
+                .andExpect(jsonPath("$.data[0].score").isNumber())
                 .andExpect(jsonPath("$.data[0].priceCredits").value(10))
                 // 카드 노출용 키워드가 응답에 그대로 포함되어야 한다 (페이지 구조 S201).
                 .andExpect(jsonPath("$.data[0].keywords[0]").value("스터디"))
