@@ -113,6 +113,9 @@ public class FinalizeChatSessionService {
             IdeaDocument doc = documentRepo.saveAndFlush(
                     new IdeaDocument(idea.getId(), 1, draft.title(), draft.contentMd()));
             idea.updateCurrentVersion(doc.getId());
+            // finalize 직후 PUBLISHED 로 전이 — 사용자 문서의 "챗봇 끝 → 자동으로 카드 만들어져 피드에 뜸"
+            // 흐름. 별도 publish 액션 없이 카드가 검색/피드/구매 흐름에 노출 (#150).
+            idea.publish();
 
             locked.finalize(idea.getId());
 
