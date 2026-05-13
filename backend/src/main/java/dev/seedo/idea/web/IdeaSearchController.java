@@ -22,7 +22,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/ideas")
-@Tag(name = "아이디어 검색", description = "자연어 쿼리로 의미상 가까운 아이디어를 정렬해 반환.")
+@Tag(name = "아이디어 검색", description = "자연어 쿼리로 키워드 매칭 + 의미 유사도 두 신호를 RRF 결합해 정렬해 반환.")
 public class IdeaSearchController {
 
     private final SearchIdeasService searchService;
@@ -33,14 +33,19 @@ public class IdeaSearchController {
 
     @GetMapping("/search")
     @Operation(
-            summary = "아이디어 자연어 검색",
+            summary = "아이디어 하이브리드 검색",
             description = """
-                    쿼리 텍스트를 임베딩(text-embedding-3-small, 1536D) 으로 변환해 cosine 거리가
-                    가까운 PUBLISHED 아이디어를 정렬해 돌려준다.
+                    쿼리 텍스트를 두 신호로 동시 검색해 결합한다 (이슈 #138):
 
-                    - 임베딩이 없는 아이디어는 결과에서 자연 배제 (INNER JOIN)
+                    1. 의미 유사도 — 임베딩 (text-embedding-3-small, 1536D) + pgvector cosine
+                    2. 키워드 매칭 — 쿼리를 공백/구두점 분리한 토큰과 idea_embeddings.keywords GIN overlap
+
+                    두 순위 리스트는 RRF (Reciprocal Rank Fusion, k=60) 로 합산해 한 점수로 정렬.
+
+                    - 임베딩이 없는 PUBLISHED 아이디어는 결과에서 자연 배제 (INNER JOIN)
                     - DELETED / DRAFT / ARCHIVED 는 노출 안 됨
-                    - similarity 는 1 - cosine_distance — 1 에 가까울수록 유사
+                    - score 는 RRF 결합 점수 — 절대값 해석 금지, 정렬 순서만 의미 있음
+                    - 임베딩 호출 실패 시 키워드 결과만으로 graceful degradation
                     - 본문은 비포함 — 본문은 구매 후 별도 경로 (RLS + Spring 모두 일관)
                     """
     )

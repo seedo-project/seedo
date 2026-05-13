@@ -45,18 +45,41 @@ public class IdeaEmbeddingRepositoryImpl implements IdeaEmbeddingRepositoryCusto
      * cosine 거리 (`<=>`) 오름차순 정렬. ivfflat 인덱스가 활용되려면 ORDER BY 와 SELECT 의 거리식이
      * 동일해야 한다 — 두 곳 모두 같은 표현식 사용. keywords 는 카드 노출용 (페이지 구조 S201).
      */
-    private static final String SEARCH_SQL = """
+    private static final String SEARCH_BY_EMBEDDING_SQL = """
             SELECT i.id,
                    i.author_id,
                    i.current_version_id,
                    i.price_credits,
                    i.reward_credits,
-                   1 - (e.embedding <=> CAST(:queryVec AS vector)) AS similarity,
+                   1 - (e.embedding <=> CAST(:queryVec AS vector)) AS score,
                    e.keywords
             FROM ideas i
             JOIN idea_embeddings e ON e.idea_id = i.id
             WHERE i.status = 'PUBLISHED' AND i.deleted_at IS NULL
             ORDER BY e.embedding <=> CAST(:queryVec AS vector)
+            LIMIT :resultLimit
+            """;
+
+    /**
+     * keywords 와 입력 토큰 배열의 overlap 카운트 내림차순. GIN 인덱스
+     * ({@code idx_idea_embeddings_keywords}) 가 WHERE 의 {@code &&} 에 사용되고, ORDER BY 의
+     * {@code cardinality(...)} 는 인덱스에 안 태워지지만 WHERE 가 후보를 충분히 줄여 큰 부담은 없다.
+     *
+     * <p>안정 정렬: overlap 동률은 {@code i.id DESC} (최신 PUBLISHED 우선) — IT 가 결정성을 가질 수 있게.
+     */
+    private static final String SEARCH_BY_KEYWORDS_SQL = """
+            SELECT i.id,
+                   i.author_id,
+                   i.current_version_id,
+                   i.price_credits,
+                   i.reward_credits,
+                   cardinality(ARRAY(SELECT unnest(e.keywords) INTERSECT SELECT unnest(CAST(:tokens AS text[]))))::double precision AS score,
+                   e.keywords
+            FROM ideas i
+            JOIN idea_embeddings e ON e.idea_id = i.id
+            WHERE i.status = 'PUBLISHED' AND i.deleted_at IS NULL
+              AND e.keywords && CAST(:tokens AS text[])
+            ORDER BY score DESC, i.id DESC
             LIMIT :resultLimit
             """;
 
@@ -79,8 +102,19 @@ public class IdeaEmbeddingRepositoryImpl implements IdeaEmbeddingRepositoryCusto
     @Override
     @SuppressWarnings("unchecked")
     public List<IdeaSearchResult> searchPublishedByEmbedding(float[] queryEmbedding, int limit) {
-        List<Object[]> rows = em.createNativeQuery(SEARCH_SQL)
+        List<Object[]> rows = em.createNativeQuery(SEARCH_BY_EMBEDDING_SQL)
                 .setParameter("queryVec", toVectorLiteral(queryEmbedding))
+                .setParameter("resultLimit", limit)
+                .getResultList();
+
+        return rows.stream().map(IdeaEmbeddingRepositoryImpl::mapRow).toList();
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<IdeaSearchResult> searchPublishedByKeywords(List<String> tokens, int limit) {
+        List<Object[]> rows = em.createNativeQuery(SEARCH_BY_KEYWORDS_SQL)
+                .setParameter("tokens", toTextArrayLiteral(tokens))
                 .setParameter("resultLimit", limit)
                 .getResultList();
 
