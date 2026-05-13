@@ -26,7 +26,7 @@ function toIdea(row: SearchIdeasResponse): Idea {
   return {
     id: String(row.ideaId),
     variant: "default",
-    tags: row.keywords ?? [],
+    tags: row.keywords,
     priceCredits: row.priceCredits,
   };
 }

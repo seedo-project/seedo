@@ -16,10 +16,19 @@ export async function GET(req: Request) {
     );
   }
 
-  const limit = searchParams.get("limit");
-  const path = `/api/v1/ideas/search?q=${encodeURIComponent(q)}${
-    limit ? `&limit=${encodeURIComponent(limit)}` : ""
-  }`;
+  const rawLimit = searchParams.get("limit");
+  let limitParam = "";
+  if (rawLimit !== null) {
+    const n = Number(rawLimit);
+    if (!Number.isInteger(n) || n < 1) {
+      return NextResponse.json(
+        { status: "ERROR", message: "limit 은 양의 정수여야 합니다", data: null },
+        { status: 400 },
+      );
+    }
+    limitParam = `&limit=${n}`;
+  }
+  const path = `/api/v1/ideas/search?q=${encodeURIComponent(q)}${limitParam}`;
 
   try {
     const res = await springFetch(path, { method: "GET" });

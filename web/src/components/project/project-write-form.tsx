@@ -25,11 +25,14 @@ const schema = z.object({
   description: z.string().trim().min(1, "설명을 입력해 주세요."),
   guide: z.string().trim().min(1, "가이드를 입력해 주세요."),
   coverImageUrl: z
-    .string()
-    .url("이미지 업로드가 완료되지 않았습니다.")
-    .max(500, "이미지 URL이 너무 깁니다.")
-    .optional()
-    .or(z.literal("")),
+    .union([
+      z
+        .string()
+        .url("이미지 업로드가 완료되지 않았습니다.")
+        .max(500, "이미지 URL이 너무 깁니다."),
+      z.literal(""),
+    ])
+    .optional(),
 });
 
 type FormValues = z.infer<typeof schema>;

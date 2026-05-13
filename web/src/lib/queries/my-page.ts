@@ -112,7 +112,8 @@ export async function fetchMyPageData(): Promise<MyPageQueryResult | null> {
       .select("id, post_type, title, body, created_at")
       .eq("author_id", authUser.id)
       .is("deleted_at", null)
-      .order("created_at", { ascending: false }),
+      .order("created_at", { ascending: false })
+      .limit(100),
     supabase
       .from("public_profiles")
       .select("nickname")
