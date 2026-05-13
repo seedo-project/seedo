@@ -3,6 +3,7 @@ package dev.seedo.idea.application;
 import dev.seedo.idea.domain.IdeaChatSession;
 import dev.seedo.idea.infrastructure.IdeaChatSessionRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
@@ -26,7 +27,7 @@ public class StartChatSessionService {
         this.sessionRepo = sessionRepo;
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public StartChatSessionResult start(UUID userId) {
         IdeaChatSession session = sessionRepo.saveAndFlush(new IdeaChatSession(userId));
         return new StartChatSessionResult(session.getId(), session.getCreatedAt());
