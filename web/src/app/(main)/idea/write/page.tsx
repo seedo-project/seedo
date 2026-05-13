@@ -5,22 +5,31 @@ import { useState } from "react";
 import { ChatComposer } from "@/components/idea/chat/chat-composer";
 import { MessageList } from "@/components/idea/chat/message-list";
 import type { ChatMessage } from "@/components/idea/chat/types";
+import { toast } from "@/lib/toast";
+import type {
+  ApiResponse,
+  SendChatMessageResponse,
+  StartChatSessionResponse,
+} from "@/types/chat";
 
-const MOCK_ASSISTANT_REPLY = `# 기술적으로 가능한가?
-
-결론부터 말하면 "가능한 방식이 있다" 입니다. 다만 어떤 방식으로 최근 파일을 감지하느냐에 따라 구현 방법이 달라집니다.
-
-## 방법 A — 폴더 감시 방식 (가장 현실적)
-
-프로그램이 특정 작업 폴더를 계속 감시합니다.
-
-예시 흐름: 사용자가 Photoshop에서 PSD 저장 → 우리 프로그램이 폴더 변경 이벤트 감지 → "최근 수정된 파일 = PSD 파일" → 프로그램에서 팝업`;
+async function parseEnvelope<T>(res: Response): Promise<T> {
+  let body: ApiResponse<T> | null = null;
+  try {
+    body = (await res.json()) as ApiResponse<T>;
+  } catch {
+    throw new Error(`요청 실패 (${res.status})`);
+  }
+  if (!res.ok || body.status !== "OK") {
+    throw new Error(body.message ?? `요청 실패 (${res.status})`);
+  }
+  return body.data;
+}
 
 export default function IdeaWritePage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [sessionId, setSessionId] = useState<number | null>(null);
   const [sending, setSending] = useState(false);
 
-  // TODO #161: Next Route Handler 프록시로 교체 — 현재는 mock 응답
   const send = async (text: string) => {
     const userMsg: ChatMessage = {
       id: `u-${Date.now()}`,
@@ -30,13 +39,30 @@ export default function IdeaWritePage() {
     setMessages((prev) => [...prev, userMsg]);
     setSending(true);
     try {
-      await new Promise((r) => setTimeout(r, 600));
+      let activeSessionId = sessionId;
+      if (activeSessionId === null) {
+        const startRes = await fetch("/api/chat-sessions", { method: "POST" });
+        const started = await parseEnvelope<StartChatSessionResponse>(startRes);
+        activeSessionId = started.sessionId;
+        setSessionId(activeSessionId);
+      }
+
+      const sendRes = await fetch(`/api/chat-sessions/${activeSessionId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: text }),
+      });
+      const reply = await parseEnvelope<SendChatMessageResponse>(sendRes);
       const assistantMsg: ChatMessage = {
-        id: `a-${Date.now()}`,
+        id: `a-${reply.assistantMessageId}`,
         role: "ASSISTANT",
-        content: MOCK_ASSISTANT_REPLY,
+        content: reply.content,
       };
       setMessages((prev) => [...prev, assistantMsg]);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "메시지 전송에 실패했습니다";
+      toast.error(msg);
+      setMessages((prev) => prev.filter((m) => m.id !== userMsg.id));
     } finally {
       setSending(false);
     }
