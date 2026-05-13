@@ -76,14 +76,15 @@ class FinalizeChatSessionServiceIT extends AbstractIntegrationTest {
     private EntityManager em;
 
     @Test
-    void happy_path_creates_draft_idea_with_v1_document_and_finalizes_session() {
+    void happy_path_creates_published_idea_with_v1_document_and_finalizes_session() {
         Fixture f = setupSession();
 
         FinalizeChatSessionResult result = service.finalize(
                 new FinalizeChatSessionCommand(f.sessionId, f.user));
 
         Idea idea = ideaRepo.findById(result.ideaId()).orElseThrow();
-        assertThat(idea.getStatus()).isEqualTo(IdeaStatus.DRAFT);
+        // 사용자 흐름: "챗봇 끝 → 자동으로 카드 만들어져 피드에 뜸" — finalize 가 직접 PUBLISHED 까지 전이 (#150).
+        assertThat(idea.getStatus()).isEqualTo(IdeaStatus.PUBLISHED);
         assertThat(idea.getAuthorId()).isEqualTo(f.user);
         assertThat(idea.getCurrentVersionId()).isEqualTo(result.documentId());
         assertThat(idea.getPriceCredits()).isEqualTo(10);

@@ -9,6 +9,9 @@ import dev.seedo.support.AbstractIntegrationTest;
 import dev.seedo.support.IdeaFixture;
 import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -68,6 +71,23 @@ class IdeaSearchControllerIT extends AbstractIntegrationTest {
 
     @Autowired
     private IdeaEmbeddingRepository embeddingRepo;
+
+    @PersistenceContext
+    private EntityManager em;
+
+    /**
+     * testcontainers PG 가 모든 IT 클래스 사이 공유라, {@code TransactionTemplate.execute} 로 명시 commit
+     * 하는 IT (FinalizeChatSessionServiceIT / IdeaEmbeddingRefreshListenerIT 등) 의 PUBLISHED idea 가
+     * 누적되어 검색 결과 length 가 어긋난다 (#150 finalize 자동 publish 추가 후 드러난 누수).
+     *
+     * <p>클래스 레벨 {@code @Transactional} 안에서 TRUNCATE — 트랜잭션 rollback 시 다른 IT 클래스로 영향
+     * 안 새어나간다. CASCADE 로 idea_documents / idea_embeddings / idea_purchases / hypes / rewards / projects
+     * 등 종속 row 도 같이 정리.
+     */
+    @BeforeEach
+    void clearAccumulatedIdeas() {
+        em.createNativeQuery("TRUNCATE TABLE ideas CASCADE").executeUpdate();
+    }
 
     @Test
     void returns_top_match_first_with_keywords() throws Exception {
