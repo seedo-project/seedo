@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { ChatComposer } from "@/components/idea/chat/chat-composer";
 import { MessageList } from "@/components/idea/chat/message-list";
@@ -34,6 +34,7 @@ export default function IdeaWritePage() {
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [sending, setSending] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
+  const finalizingRef = useRef(false);
 
   const send = async (text: string) => {
     const userMsg: ChatMessage = {
@@ -74,7 +75,8 @@ export default function IdeaWritePage() {
   };
 
   const finalize = async () => {
-    if (sessionId === null) return;
+    if (sessionId === null || finalizingRef.current) return;
+    finalizingRef.current = true;
     setFinalizing(true);
     try {
       const res = await fetch(`/api/chat-sessions/${sessionId}/finalize`, {
@@ -85,6 +87,7 @@ export default function IdeaWritePage() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : "마무리에 실패했습니다";
       toast.error(msg);
+      finalizingRef.current = false;
       setFinalizing(false);
     }
   };
