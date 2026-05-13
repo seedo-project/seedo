@@ -13,7 +13,7 @@ export async function fetchHypeState(
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ count }, mineResult] = await Promise.all([
+  const [countResult, mineResult] = await Promise.all([
     supabase
       .from("hypes")
       .select("id", { count: "exact", head: true })
@@ -25,11 +25,14 @@ export async function fetchHypeState(
           .eq("user_id", user.id)
           .eq(col, targetId)
           .maybeSingle()
-      : Promise.resolve({ data: null }),
+      : Promise.resolve({ data: null, error: null }),
   ]);
 
+  if (countResult.error) throw countResult.error;
+  if (mineResult.error) throw mineResult.error;
+
   return {
-    count: count ?? 0,
+    count: countResult.count ?? 0,
     hyped: !!mineResult.data,
   };
 }
