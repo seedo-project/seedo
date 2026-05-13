@@ -126,8 +126,8 @@ class IdeaEmbeddingRefreshListenerIT extends AbstractIntegrationTest {
             assertThat(keywordsOf(ideaId)).containsExactly(
                     "stub-keyword-1", "stub-keyword-2", "stub-keyword-3");
         });
-        verify(embeddingClient).embed("stub content markdown");
-        verify(embeddingClient).embed("본문 v2");
+        verify(embeddingClient).embed(IntegrationTestStubsConfig.STUB_CONTENT_MD);  // finalize 호출
+        verify(embeddingClient).embed("본문 v2");                                       // publish 호출
     }
 
     @Test
