@@ -40,13 +40,15 @@ BEGIN
             'u-' || replace(NEW.id::text, '-', '')
         );
 
-        v_real_name         := NULLIF(NEW.raw_user_meta_data ->> 'real_name', '');
-        v_gender            := NULLIF(NEW.raw_user_meta_data ->> 'gender', '');
-        v_profile_image_url := NULLIF(NEW.raw_user_meta_data ->> 'profile_image_url', '');
+        -- btrim + NULLIF — 공백뿐 입력 ("   ") 도 NULL 로 정규화. User.blankToNull (Java isBlank()) 와
+        -- 같은 기준으로 두 경로 (도메인 / DB trigger) 의 정규화 결과를 일관 유지.
+        v_real_name         := NULLIF(btrim(NEW.raw_user_meta_data ->> 'real_name'), '');
+        v_gender            := NULLIF(btrim(NEW.raw_user_meta_data ->> 'gender'), '');
+        v_profile_image_url := NULLIF(btrim(NEW.raw_user_meta_data ->> 'profile_image_url'), '');
 
         -- birth_date 형식이 깨져도 가입 자체는 성공해야 한다.
         BEGIN
-            v_birth_date := NULLIF(NEW.raw_user_meta_data ->> 'birth_date', '')::date;
+            v_birth_date := NULLIF(btrim(NEW.raw_user_meta_data ->> 'birth_date'), '')::date;
         EXCEPTION WHEN OTHERS THEN
             v_birth_date := NULL;
         END;

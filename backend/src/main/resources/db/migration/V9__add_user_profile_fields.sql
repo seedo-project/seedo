@@ -17,8 +17,14 @@ ALTER TABLE public.users
 -- NULL 도 허용 — 사용자가 미입력한 경우.
 DO $$
 BEGIN
+    -- conname 만 검사하면 같은 이름의 constraint 가 다른 테이블에 있을 때 우리 users 에 추가 안 됨.
+    -- conrelid (해당 테이블) + contype = 'c' (CHECK) 까지 한정해 정확히 우리 constraint 만 고른다.
     IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint WHERE conname = 'users_gender_check'
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'users_gender_check'
+          AND conrelid = 'public.users'::regclass
+          AND contype = 'c'
     ) THEN
         ALTER TABLE public.users
             ADD CONSTRAINT users_gender_check
