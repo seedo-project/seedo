@@ -4,18 +4,15 @@ import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
+import {
+  commentTable,
+  commentTargetCol,
+  type CommentTarget,
+} from "@/lib/comments-target";
 import { formatRelativeKo } from "@/lib/format";
-import type { CommentItem, CommentTarget } from "@/lib/queries/comments";
+import type { CommentItem } from "@/lib/queries/comments";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "@/lib/toast";
-
-function tableFor(target: CommentTarget) {
-  return target === "idea" ? "idea_comments" : "project_comments";
-}
-
-function targetColFor(target: CommentTarget) {
-  return target === "idea" ? "idea_id" : "project_id";
-}
 
 const MAX_LEN = 2000;
 
@@ -37,8 +34,8 @@ export function CommentSection({
   const [busy, setBusy] = useState(false);
 
   const supabase = createClient();
-  const table = tableFor(target);
-  const targetCol = targetColFor(target);
+  const table = commentTable(target);
+  const targetCol = commentTargetCol(target);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();

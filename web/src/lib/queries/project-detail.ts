@@ -12,8 +12,6 @@ export type ProjectDetail = {
   description: string;
   registeredAt: string;
   body: string;
-  bookmarkCount: number;
-  hypeCount: number;
 };
 
 function statusToChip(status: string): ChipVariant {
@@ -92,8 +90,5 @@ export async function fetchProjectDetail(id: string): Promise<ProjectDetail> {
       "등록",
     ),
     body: data.idea_snapshot_md,
-    // TODO: hypes / project_follows 테이블 추가 후 실제 카운트로 교체
-    bookmarkCount: 0,
-    hypeCount: 0,
   };
 }
