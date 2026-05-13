@@ -24,7 +24,7 @@ public class IntegrationTestStubsConfig {
         return text -> new float[1536];
     }
 
-    /** 결정적 stub — 챗봇 호출은 고정 응답, finalize 합성은 고정 draft. 정교한 검증이 필요하면 mock 으로 override. */
+    /** 결정적 stub — 챗봇 호출은 고정 응답, finalize 합성은 고정 draft (5개 섹션 + 키워드). */
     @Bean
     public ChatClient stubChatClient() {
         return new ChatClient() {
@@ -35,7 +35,11 @@ public class IntegrationTestStubsConfig {
 
             @Override
             public IdeaDocumentDraft synthesizeIdeaDocument(java.util.List<ChatTurn> turns) {
-                return new IdeaDocumentDraft("stub title", "stub content markdown");
+                return new IdeaDocumentDraft(
+                        "stub title",
+                        "stub content markdown",
+                        java.util.List.of("stub-keyword-1", "stub-keyword-2", "stub-keyword-3")
+                );
             }
         };
     }

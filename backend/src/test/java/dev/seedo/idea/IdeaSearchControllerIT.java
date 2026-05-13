@@ -18,6 +18,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
@@ -66,12 +67,12 @@ class IdeaSearchControllerIT extends AbstractIntegrationTest {
     private IdeaEmbeddingRepository embeddingRepo;
 
     @Test
-    void returns_closest_idea_first() throws Exception {
+    void returns_closest_idea_first_with_keywords() throws Exception {
         UUID author = UserFixture.create(userRepo);
         UUID viewer = UserFixture.create(userRepo);
-        Long ideaA = publishedWithEmbedding(author, oneHot(0));
-        Long ideaB = publishedWithEmbedding(author, oneHot(1));
-        Long ideaC = publishedWithEmbedding(author, oneHot(2));
+        Long ideaA = publishedWithEmbedding(author, oneHot(0), List.of("학습", "타이머"));
+        Long ideaB = publishedWithEmbedding(author, oneHot(1), List.of("스터디", "그룹"));
+        Long ideaC = publishedWithEmbedding(author, oneHot(2), List.of("운동"));
 
         primeAuth(viewer);
         // query 임베딩이 ideaB 와 같은 1-hot → cosine similarity 1, 나머지는 0 → ideaB 가 첫 번째.
@@ -84,6 +85,9 @@ class IdeaSearchControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.data[0].ideaId").value(ideaB))
                 .andExpect(jsonPath("$.data[0].similarity").value(1.0))
                 .andExpect(jsonPath("$.data[0].priceCredits").value(10))
+                // 카드 노출용 키워드가 응답에 그대로 포함되어야 한다 (페이지 구조 S201).
+                .andExpect(jsonPath("$.data[0].keywords[0]").value("스터디"))
+                .andExpect(jsonPath("$.data[0].keywords[1]").value("그룹"))
                 // ideaA / ideaC 는 다른 1-hot 이라 cosine similarity 0 — 동률이지만 결과에 포함되어야 한다.
                 .andExpect(jsonPath("$.data[?(@.ideaId == " + ideaA + ")]").exists())
                 .andExpect(jsonPath("$.data[?(@.ideaId == " + ideaC + ")]").exists());
@@ -94,10 +98,10 @@ class IdeaSearchControllerIT extends AbstractIntegrationTest {
         UUID author = UserFixture.create(userRepo);
         UUID viewer = UserFixture.create(userRepo);
 
-        Long publishedId = publishedWithEmbedding(author, oneHot(0));
+        Long publishedId = publishedWithEmbedding(author, oneHot(0), List.of());
         // DRAFT 에도 임베딩 박아 — 노출되면 안 된다.
         Idea draft = IdeaFixture.createDraft(ideaRepo, author, 10, 5);
-        embeddingRepo.upsertEmbedding(draft.getId(), oneHot(0));
+        embeddingRepo.upsertEmbedding(draft.getId(), oneHot(0), List.of());
 
         primeAuth(viewer);
         when(embeddingClient.embed("질의")).thenReturn(oneHot(0));
@@ -113,7 +117,7 @@ class IdeaSearchControllerIT extends AbstractIntegrationTest {
         UUID author = UserFixture.create(userRepo);
         UUID viewer = UserFixture.create(userRepo);
 
-        Long withEmbedding = publishedWithEmbedding(author, oneHot(0));
+        Long withEmbedding = publishedWithEmbedding(author, oneHot(0), List.of());
         // 임베딩 없는 PUBLISHED — listener 가 실패한 시나리오. INNER JOIN 이라 자연 배제.
         IdeaFixture.createPublished(ideaRepo, docRepo, author, 10, 5).getId();
 
@@ -131,7 +135,7 @@ class IdeaSearchControllerIT extends AbstractIntegrationTest {
         UUID author = UserFixture.create(userRepo);
         UUID viewer = UserFixture.create(userRepo);
         for (int i = 0; i < 5; i++) {
-            publishedWithEmbedding(author, oneHot(i));
+            publishedWithEmbedding(author, oneHot(i), List.of());
         }
 
         primeAuth(viewer);
@@ -156,9 +160,9 @@ class IdeaSearchControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.message").value(containsString("blank")));
     }
 
-    private Long publishedWithEmbedding(UUID author, float[] embedding) {
+    private Long publishedWithEmbedding(UUID author, float[] embedding, List<String> keywords) {
         Long ideaId = IdeaFixture.createPublished(ideaRepo, docRepo, author, 10, 5).getId();
-        embeddingRepo.upsertEmbedding(ideaId, embedding);
+        embeddingRepo.upsertEmbedding(ideaId, embedding, keywords);
         return ideaId;
     }
 

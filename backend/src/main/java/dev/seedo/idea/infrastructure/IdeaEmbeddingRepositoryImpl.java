@@ -17,11 +17,24 @@ import java.util.UUID;
  *
  * <p>{@code ON CONFLICT (idea_id) DO UPDATE} 로 멱등성 — 같은 idea 에 대해 listener 가 두 번 실행돼도
  * 마지막 호출의 임베딩만 남는다. updated_at 트리거가 자동으로 갱신 시각 박는다.
+ *
+ * <p>keywords 는 두 SQL 로 분기 — 빈 List 면 embedding 만 갱신해 이전 키워드 보존, 비어있지 않으면
+ * embedding + keywords 둘 다 갱신. INSERT 시점에는 양쪽 다 같은 컬럼 채움 (빈 List 는 빈 배열).
  */
 @Repository
 public class IdeaEmbeddingRepositoryImpl implements IdeaEmbeddingRepositoryCustom {
 
-    private static final String UPSERT_SQL = """
+    /** keywords 도 함께 갱신 — finalize (이벤트에 keywords 채워짐) 경로. */
+    private static final String UPSERT_WITH_KEYWORDS_SQL = """
+            INSERT INTO idea_embeddings (idea_id, embedding, keywords)
+            VALUES (:ideaId, CAST(:embedding AS vector), CAST(:keywords AS text[]))
+            ON CONFLICT (idea_id) DO UPDATE
+            SET embedding = EXCLUDED.embedding,
+                keywords  = EXCLUDED.keywords
+            """;
+
+    /** embedding 만 갱신 — 새 버전 발행(PublishIdeaVersionService) 처럼 keywords 재추출 안 한 경로. */
+    private static final String UPSERT_EMBEDDING_ONLY_SQL = """
             INSERT INTO idea_embeddings (idea_id, embedding, keywords)
             VALUES (:ideaId, CAST(:embedding AS vector), '{}'::text[])
             ON CONFLICT (idea_id) DO UPDATE
@@ -30,7 +43,7 @@ public class IdeaEmbeddingRepositoryImpl implements IdeaEmbeddingRepositoryCusto
 
     /**
      * cosine 거리 (`<=>`) 오름차순 정렬. ivfflat 인덱스가 활용되려면 ORDER BY 와 SELECT 의 거리식이
-     * 동일해야 한다 — 두 곳 모두 같은 표현식 사용.
+     * 동일해야 한다 — 두 곳 모두 같은 표현식 사용. keywords 는 카드 노출용 (페이지 구조 S201).
      */
     private static final String SEARCH_SQL = """
             SELECT i.id,
@@ -38,7 +51,8 @@ public class IdeaEmbeddingRepositoryImpl implements IdeaEmbeddingRepositoryCusto
                    i.current_version_id,
                    i.price_credits,
                    i.reward_credits,
-                   1 - (e.embedding <=> CAST(:queryVec AS vector)) AS similarity
+                   1 - (e.embedding <=> CAST(:queryVec AS vector)) AS similarity,
+                   e.keywords
             FROM ideas i
             JOIN idea_embeddings e ON e.idea_id = i.id
             WHERE i.status = 'PUBLISHED' AND i.deleted_at IS NULL
@@ -50,11 +64,16 @@ public class IdeaEmbeddingRepositoryImpl implements IdeaEmbeddingRepositoryCusto
     private EntityManager em;
 
     @Override
-    public void upsertEmbedding(long ideaId, float[] embedding) {
-        em.createNativeQuery(UPSERT_SQL)
+    public void upsertEmbedding(long ideaId, float[] embedding, List<String> keywords) {
+        boolean hasKeywords = keywords != null && !keywords.isEmpty();
+        String sql = hasKeywords ? UPSERT_WITH_KEYWORDS_SQL : UPSERT_EMBEDDING_ONLY_SQL;
+        var query = em.createNativeQuery(sql)
                 .setParameter("ideaId", ideaId)
-                .setParameter("embedding", toVectorLiteral(embedding))
-                .executeUpdate();
+                .setParameter("embedding", toVectorLiteral(embedding));
+        if (hasKeywords) {
+            query.setParameter("keywords", toTextArrayLiteral(keywords));
+        }
+        query.executeUpdate();
     }
 
     @Override
@@ -69,16 +88,36 @@ public class IdeaEmbeddingRepositoryImpl implements IdeaEmbeddingRepositoryCusto
     }
 
     private static IdeaSearchResult mapRow(Object[] row) {
-        // Postgres bigint -> Long, uuid -> UUID, int -> Integer, double precision -> Double.
-        // PG JDBC 가 직접 변환하므로 캐스트 안전.
+        // Postgres bigint -> Long, uuid -> UUID, int -> Integer, double precision -> Double, text[] -> String[].
         return new IdeaSearchResult(
                 ((Number) row[0]).longValue(),
                 (UUID) row[1],
                 row[2] == null ? null : ((Number) row[2]).longValue(),
                 ((Number) row[3]).intValue(),
                 ((Number) row[4]).intValue(),
-                ((Number) row[5]).doubleValue()
+                ((Number) row[5]).doubleValue(),
+                toKeywordList(row[6])
         );
+    }
+
+    private static List<String> toKeywordList(Object pgArray) {
+        if (pgArray == null) {
+            return List.of();
+        }
+        // PG JDBC 가 text[] 를 String[] 로 반환. defensive 한 ClassCast.
+        if (pgArray instanceof String[] arr) {
+            return List.of(arr);
+        }
+        // 일부 드라이버는 java.sql.Array 로 반환할 수 있다 — 미사용 경로지만 방어.
+        try {
+            Object inner = ((java.sql.Array) pgArray).getArray();
+            if (inner instanceof String[] arr) {
+                return List.of(arr);
+            }
+        } catch (java.sql.SQLException ignored) {
+            // fall through
+        }
+        return List.of();
     }
 
     /** pgvector 의 문자열 입력 형식: {@code [v0,v1,...,vN]}. 공백/대괄호 외 다른 구분자 없음. */
@@ -93,5 +132,27 @@ public class IdeaEmbeddingRepositoryImpl implements IdeaEmbeddingRepositoryCusto
         }
         sb.append(']');
         return sb.toString();
+    }
+
+    /**
+     * Postgres text[] literal — {@code {a,b,c}} 형식. 키워드 안에 쉼표 / 큰따옴표 / 백슬래시가 있으면
+     * 큰따옴표로 감싸고 escape. LLM 이 짧은 한국어 명사를 주는 흐름이라 대부분 escape 불필요.
+     */
+    private static String toTextArrayLiteral(List<String> items) {
+        StringBuilder sb = new StringBuilder(items.size() * 16);
+        sb.append('{');
+        for (int i = 0; i < items.size(); i++) {
+            if (i > 0) {
+                sb.append(',');
+            }
+            sb.append(quoteForArray(items.get(i)));
+        }
+        sb.append('}');
+        return sb.toString();
+    }
+
+    private static String quoteForArray(String s) {
+        // Postgres array literal 안에서는 큰따옴표 / 백슬래시를 escape. NULL 문자열은 호출 전에 필터링됨.
+        return '"' + s.replace("\\", "\\\\").replace("\"", "\\\"") + '"';
     }
 }

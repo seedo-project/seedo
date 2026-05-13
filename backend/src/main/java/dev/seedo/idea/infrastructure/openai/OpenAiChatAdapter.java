@@ -36,15 +36,36 @@ public class OpenAiChatAdapter implements ChatClient {
     private static final String CHAT_PATH = "/chat/completions";
 
     /**
-     * finalize 전용 시스템 프롬프트. JSON mode 와 짝으로, 모델이 {@code {title, contentMd}} 만 반환하도록 가이드.
-     * title 길이 상한은 V2 의 {@code idea_documents.title varchar(200)} 과 일치.
+     * finalize 전용 시스템 프롬프트. JSON mode 와 짝으로, 모델이 {@code {title, contentMd, keywords}} 만
+     * 반환하도록 가이드. contentMd 는 페이지 구조 S303 의 5개 섹션 정형화. keywords 는 카드 노출용 (S201).
      */
     private static final String SYNTHESIZE_SYSTEM_PROMPT = """
             당신은 사용자와의 대화 내용을 한 편의 기획문서로 정리하는 도우미입니다.
-            오직 다음 JSON 형식으로만 응답하세요:
-            {"title": "<한 줄 제목, 최대 200자>", "contentMd": "<마크다운 본문>"}
-            title 은 한 줄, 마크다운/따옴표 금지. contentMd 는 ## 헤더 / 불릿 / 단락으로 구성된 자연스러운 마크다운.
-            대화에서 도출되지 않은 사실은 추가하지 마세요.
+            오직 다음 JSON 형식으로만 응답하세요 — 추가 텍스트 / 설명 / 마크다운 코드펜스 금지:
+
+            {
+              "title": "<한 줄 제목, 최대 200자>",
+              "contentMd": "<5개 섹션 마크다운 본문>",
+              "keywords": ["<키워드1>", "<키워드2>", ...]
+            }
+
+            title:
+            - 한 줄, 마크다운/따옴표 금지
+
+            contentMd:
+            - 반드시 다음 5개 섹션을 이 순서대로 포함, 각 섹션은 `## ` 헤더로 시작
+              ## Problem      — 사용자가 겪은 불편함
+              ## Solution     — 어떻게 해결하는가
+              ## Target User  — 누가 이 솔루션을 쓸까
+              ## Market       — 비슷한 고민을 가진 사람이 얼마나 있는가
+              ## Insight      — 왜 지금 이 솔루션이 의미 있는가
+            - 각 섹션 본문은 1~3 단락 또는 짧은 불릿
+            - 대화에서 도출되지 않은 사실은 추가하지 마세요
+
+            keywords:
+            - 카드 노출용 한국어 명사 5~10개
+            - 도메인 / 사용자 / 핵심 기능 위주 (예: "공부 습관", "집중력", "대학생", "타이머")
+            - 일반적인 단어 (앱 / 서비스 / 사용자) 는 피하기
             """;
 
     private final WebClient webClient;
@@ -151,7 +172,24 @@ public class OpenAiChatAdapter implements ChatClient {
         if (title.length() > 200) {
             title = title.substring(0, 200);
         }
-        return new IdeaDocumentDraft(title, contentMd);
+        // keywords 는 옵셔널로 취급 — 모델이 안 채워도 본문은 살린다 (빈 List). 정제: 공백 제거 + blank 필터.
+        return new IdeaDocumentDraft(title, contentMd, extractKeywords(node.get("keywords")));
+    }
+
+    private static List<String> extractKeywords(JsonNode arrayNode) {
+        if (arrayNode == null || !arrayNode.isArray()) {
+            return List.of();
+        }
+        List<String> keywords = new ArrayList<>(arrayNode.size());
+        arrayNode.forEach(item -> {
+            if (item != null && !item.isNull()) {
+                String trimmed = item.asText().trim();
+                if (!trimmed.isEmpty()) {
+                    keywords.add(trimmed);
+                }
+            }
+        });
+        return List.copyOf(keywords);
     }
 
     private static String textOrNull(JsonNode node) {

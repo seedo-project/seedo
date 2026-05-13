@@ -40,9 +40,14 @@ public interface ChatClient {
     }
 
     /**
-     * finalize 자동 작성 결과. title 은 한 줄(최대 200자, V2 {@code idea_documents.title varchar(200)} 과 일치),
-     * contentMd 는 마크다운.
+     * finalize 자동 작성 결과.
+     * <ul>
+     *   <li>{@code title} — 한 줄, 최대 200자 (V2 {@code idea_documents.title varchar(200)} 과 일치)</li>
+     *   <li>{@code contentMd} — 5개 섹션 (## Problem / ## Solution / ## Target User / ## Market / ## Insight)
+     *       정형화된 마크다운 (페이지 구조 S303)</li>
+     *   <li>{@code keywords} — 카드 노출용 키워드 5~10개 (페이지 구조 S201). 한국어 명사 위주</li>
+     * </ul>
      */
-    record IdeaDocumentDraft(String title, String contentMd) {
+    record IdeaDocumentDraft(String title, String contentMd, List<String> keywords) {
     }
 }
