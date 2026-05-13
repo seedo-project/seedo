@@ -41,6 +41,39 @@ class SupabaseAuthTriggerIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void v9_adds_user_profile_columns() {
+        // V9 는 컬럼 추가 — auth 스키마 가드 없이 모든 환경에 적용. Testcontainers 에서도 컬럼이 실제 생긴다.
+        for (String column : new String[]{"real_name", "birth_date", "gender", "profile_image_url"}) {
+            assertThat(exists(
+                    "SELECT 1 FROM information_schema.columns " +
+                    "WHERE table_schema = 'public' AND table_name = 'users' " +
+                    "  AND column_name = '" + column + "'"
+            )).as("V9 must add column " + column).isTrue();
+        }
+        assertThat(exists(
+                "SELECT 1 FROM pg_constraint WHERE conname = 'users_gender_check'"
+        )).as("V9 must add users_gender_check CHECK constraint").isTrue();
+    }
+
+    @Test
+    void v10_marked_success_in_flyway_history() {
+        // V10 도 auth 스키마 가드 — Testcontainers 에선 noop, 마이그레이션 자체는 success.
+        assertThat(exists(
+                "SELECT 1 FROM flyway_schema_history " +
+                "WHERE version = '10' AND success = true"
+        )).as("V10 must be applied successfully").isTrue();
+    }
+
+    @Test
+    void v11_marked_success_in_flyway_history() {
+        // V11 도 auth 스키마 가드 (public_profiles 뷰는 V7 에서도 가드 안에 있음).
+        assertThat(exists(
+                "SELECT 1 FROM flyway_schema_history " +
+                "WHERE version = '11' AND success = true"
+        )).as("V11 must be applied successfully").isTrue();
+    }
+
+    @Test
     void auth_schema_absent_on_testcontainers() {
         assertThat(exists(
                 "SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth'"

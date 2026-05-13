@@ -1,8 +1,14 @@
 package dev.seedo.idea;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.seedo.idea.domain.ChatMessageRole;
+import dev.seedo.idea.domain.IdeaChatMessage;
 import dev.seedo.idea.domain.IdeaChatSession;
+import dev.seedo.idea.infrastructure.IdeaChatMessageRepository;
 import dev.seedo.idea.infrastructure.IdeaChatSessionRepository;
+import dev.seedo.idea.infrastructure.IdeaDocumentRepository;
+import dev.seedo.idea.infrastructure.IdeaRepository;
 import dev.seedo.support.AbstractIntegrationTest;
 import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
@@ -11,16 +17,15 @@ import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
-import java.util.Map;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -30,14 +35,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * {@code POST /api/v1/chat-sessions/{id}/finalize} HTTP 통합 — JWT 인증 → @PreAuthorize → service →
- * ApiResponse 봉투까지 한 줄로 흐르는지 검증.
+ * ApiResponse 봉투까지 한 줄로 흐르는지 검증. 본문 자동 작성 흐름 (#127): 클라가 마크다운을 보내지 않고
+ * LLM 응답이 그대로 저장된다. {@link dev.seedo.idea.application.port.out.ChatClient} 는 stub 빈
+ * (`stub title` / `stub content markdown` 결정적 응답).
  *
- * <p>JwtDecoder 만 모킹 — JWKS 호출 우회. 나머지 필터/컨버터/메서드 보안/advice 는 모두 실제 빈.
+ * <p>클래스 레벨 {@code @Transactional} 을 쓰지 않는다 (lessons F.5). service 가 외부 호출 + INSERT 트랜잭션을
+ * {@code TransactionTemplate} 으로 분리하므로 outer 와 join 되면 그 경계 자체가 검증 안 된다. 격리는 매 테스트가
+ * 새 UUID 의 사용자를 만드는 row-level 격리로 충분.
+ *
+ * <p>{@code UserFixture.createWithRole} 안 native query 가 트랜잭션을 요구해 {@link TransactionTemplate#execute}
+ * 안에서 호출한다 (PR #126 fix 경험).
  */
 @AutoConfigureMockMvc
-@Transactional
 class ChatSessionFinalizeControllerIT extends AbstractIntegrationTest {
 
+    private static final String PATH_TEMPLATE = "/api/v1/chat-sessions/%d/finalize";
     private static final String BEARER = "Bearer test-token";
 
     @MockitoBean
@@ -55,81 +67,100 @@ class ChatSessionFinalizeControllerIT extends AbstractIntegrationTest {
     @Autowired
     private IdeaChatSessionRepository sessionRepo;
 
+    @Autowired
+    private IdeaChatMessageRepository messageRepo;
+
+    @Autowired
+    private IdeaRepository ideaRepo;
+
+    @Autowired
+    private IdeaDocumentRepository docRepo;
+
+    @Autowired
+    private TransactionTemplate tx;
+
     @PersistenceContext
     private EntityManager em;
 
     @Test
-    void successful_finalize_returns_ok_envelope_with_ids() throws Exception {
+    void successful_finalize_persists_llm_draft_as_idea_document() throws Exception {
         UUID user = createUserWithRole();
-        Long sessionId = sessionRepo.saveAndFlush(new IdeaChatSession(user)).getId();
-        when(jwtDecoder.decode(eq("test-token"))).thenReturn(jwtFor(user));
+        Long sessionId = setupSessionWithMessage(user, "공부 습관 잡아주는 앱 만들고 싶어요");
+        primeAuth(user);
 
-        mockMvc.perform(post("/api/v1/chat-sessions/" + sessionId + "/finalize")
-                        .header("Authorization", BEARER)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body("제목", "본문")))
+        String responseBody = mockMvc.perform(post(path(sessionId)).header("Authorization", BEARER))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("OK"))
-                .andExpect(jsonPath("$.message").doesNotExist())
                 .andExpect(jsonPath("$.data.ideaId").isNumber())
                 .andExpect(jsonPath("$.data.documentId").isNumber())
-                .andExpect(jsonPath("$.data.version").value(1));
+                .andExpect(jsonPath("$.data.version").value(1))
+                .andReturn().getResponse().getContentAsString();
+
+        // LLM stub 응답이 그대로 idea_documents 에 저장됐는지 후속 DB 검증.
+        JsonNode data = mapper.readTree(responseBody).path("data");
+        Long ideaId = data.path("ideaId").asLong();
+        Long docId = data.path("documentId").asLong();
+        assertThat(ideaRepo.findById(ideaId).orElseThrow().getCurrentVersionId()).isEqualTo(docId);
+        var doc = docRepo.findById(docId).orElseThrow();
+        assertThat(doc.getTitle()).isEqualTo("stub title");
+        assertThat(doc.getContentMd()).isEqualTo("stub content markdown");
     }
 
     @Test
-    void non_owner_returns_403_envelope() throws Exception {
+    void empty_chat_history_returns_400() throws Exception {
+        UUID user = createUserWithRole();
+        Long sessionId = tx.execute(s -> sessionRepo.saveAndFlush(new IdeaChatSession(user)).getId());
+        primeAuth(user);
+
+        mockMvc.perform(post(path(sessionId)).header("Authorization", BEARER))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("ERROR"))
+                .andExpect(jsonPath("$.message").value(containsString("no messages")));
+    }
+
+    @Test
+    void non_owner_returns_403() throws Exception {
         UUID owner = UserFixture.create(userRepo);
         UUID intruder = createUserWithRole();
-        Long sessionId = sessionRepo.saveAndFlush(new IdeaChatSession(owner)).getId();
-        when(jwtDecoder.decode(eq("test-token"))).thenReturn(jwtFor(intruder));
+        Long sessionId = setupSessionWithMessage(owner, "hi");
+        primeAuth(intruder);
 
-        mockMvc.perform(post("/api/v1/chat-sessions/" + sessionId + "/finalize")
-                        .header("Authorization", BEARER)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body("제목", "본문")))
+        mockMvc.perform(post(path(sessionId)).header("Authorization", BEARER))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value("ERROR"))
-                .andExpect(jsonPath("$.message").value(containsString("not owned by caller")))
-                .andExpect(jsonPath("$.data").doesNotExist());
+                .andExpect(jsonPath("$.message").value(containsString("not owned by caller")));
     }
 
     @Test
-    void missing_session_returns_404_envelope() throws Exception {
+    void missing_session_returns_404() throws Exception {
         UUID user = createUserWithRole();
-        when(jwtDecoder.decode(eq("test-token"))).thenReturn(jwtFor(user));
+        primeAuth(user);
 
-        mockMvc.perform(post("/api/v1/chat-sessions/999999/finalize")
-                        .header("Authorization", BEARER)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body("제목", "본문")))
+        mockMvc.perform(post(path(999_999L)).header("Authorization", BEARER))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value("ERROR"))
                 .andExpect(jsonPath("$.message").value(containsString("chat session not found")));
     }
 
     @Test
     void missing_authorization_returns_401() throws Exception {
-        mockMvc.perform(post("/api/v1/chat-sessions/1/finalize")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body("제목", "본문")))
+        mockMvc.perform(post(path(1L)))
                 .andExpect(status().isUnauthorized());
     }
 
-    @Test
-    void blank_title_returns_400() throws Exception {
-        UUID user = createUserWithRole();
-        Long sessionId = sessionRepo.saveAndFlush(new IdeaChatSession(user)).getId();
-        when(jwtDecoder.decode(eq("test-token"))).thenReturn(jwtFor(user));
-
-        mockMvc.perform(post("/api/v1/chat-sessions/" + sessionId + "/finalize")
-                        .header("Authorization", BEARER)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body("", "본문")))
-                .andExpect(status().isBadRequest());
+    private Long setupSessionWithMessage(UUID userId, String text) {
+        return tx.execute(s -> {
+            IdeaChatSession session = sessionRepo.saveAndFlush(new IdeaChatSession(userId));
+            messageRepo.saveAndFlush(new IdeaChatMessage(session.getId(), ChatMessageRole.USER, text));
+            return session.getId();
+        });
     }
 
-    private String body(String title, String contentMd) throws Exception {
-        return mapper.writeValueAsString(Map.of("title", title, "contentMd", contentMd));
+    private String path(Long sessionId) {
+        return String.format(PATH_TEMPLATE, sessionId);
+    }
+
+    private void primeAuth(UUID userId) {
+        when(jwtDecoder.decode(eq("test-token"))).thenReturn(jwtFor(userId));
     }
 
     private Jwt jwtFor(UUID sub) {
@@ -141,6 +172,7 @@ class ChatSessionFinalizeControllerIT extends AbstractIntegrationTest {
     }
 
     private UUID createUserWithRole() {
-        return UserFixture.createWithRole(userRepo, em, 1L);
+        // UserFixture.createWithRole 내부 em.createNativeQuery().executeUpdate() 가 트랜잭션 요구.
+        return tx.execute(s -> UserFixture.createWithRole(userRepo, em, 1L));
     }
 }

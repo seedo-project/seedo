@@ -3,13 +3,18 @@ package dev.seedo.idea.web;
 import dev.seedo.common.web.ApiResponse;
 import dev.seedo.credit.application.InsufficientCreditException;
 import dev.seedo.idea.application.AlreadyPurchasedException;
+import dev.seedo.idea.application.ChatHistoryChangedException;
+import dev.seedo.idea.application.ChatMessageEmptyException;
 import dev.seedo.idea.application.ChatSessionAccessDeniedException;
+import dev.seedo.idea.application.ChatSessionNotAcceptingMessagesException;
 import dev.seedo.idea.application.ChatSessionNotFinalizableException;
 import dev.seedo.idea.application.ChatSessionNotFoundException;
+import dev.seedo.idea.application.EmptyChatHistoryException;
 import dev.seedo.idea.application.IdeaAccessDeniedException;
 import dev.seedo.idea.application.IdeaNotFoundException;
 import dev.seedo.idea.application.IdeaNotPurchasableException;
 import dev.seedo.idea.application.IdeaNotVersionableException;
+import dev.seedo.idea.application.SearchQueryEmptyException;
 import dev.seedo.idea.application.SelfPurchaseException;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -47,11 +52,26 @@ public class IdeaExceptionHandler {
         return error(HttpStatus.CONFLICT, e.getMessage());
     }
 
+    @ExceptionHandler(ChatSessionNotAcceptingMessagesException.class)
+    public ResponseEntity<ApiResponse<Void>> handleSessionNotAccepting(ChatSessionNotAcceptingMessagesException e) {
+        // FINALIZED / ABANDONED 세션은 더 이상 메시지 추가 불가 — 상태 충돌 = 409.
+        return error(HttpStatus.CONFLICT, e.getMessage());
+    }
+
+    @ExceptionHandler(ChatHistoryChangedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleHistoryChanged(ChatHistoryChangedException e) {
+        // finalize LLM 호출 동안 새 메시지가 끼어들었음 — 클라이언트가 새 history 받고 재시도하면 된다.
+        return error(HttpStatus.CONFLICT, e.getMessage());
+    }
+
     @ExceptionHandler({
             IdeaNotPurchasableException.class,
             SelfPurchaseException.class,
             ChatSessionNotFinalizableException.class,
-            IdeaNotVersionableException.class
+            IdeaNotVersionableException.class,
+            SearchQueryEmptyException.class,
+            ChatMessageEmptyException.class,
+            EmptyChatHistoryException.class
     })
     public ResponseEntity<ApiResponse<Void>> handleBadRequest(RuntimeException e) {
         return error(HttpStatus.BAD_REQUEST, e.getMessage());
