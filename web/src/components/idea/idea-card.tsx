@@ -11,7 +11,8 @@ export type Idea =
       id: string;
       variant: "default";
       tags: string[];
-      postedAt: string;
+      /** 작성 시각. 검색 결과처럼 시각 정보가 없으면 omit — clock 칩이 숨겨진다. */
+      postedAt?: string;
       priceCredits: number;
     }
   | {
@@ -84,14 +85,16 @@ export function IdeaCard({
         ))}
       </div>
       <div className="flex items-end gap-2 self-end text-muted-foreground">
-        <span className="flex items-end">
-          <span className="flex size-5 items-center justify-center">
-            <ClockIcon className="size-[13.333px]" />
+        {idea.postedAt ? (
+          <span className="flex items-end">
+            <span className="flex size-5 items-center justify-center">
+              <ClockIcon className="size-[13.333px]" />
+            </span>
+            <span className="text-sm leading-[1.5] font-medium tracking-[-0.35px]">
+              {idea.postedAt}
+            </span>
           </span>
-          <span className="text-sm leading-[1.5] font-medium tracking-[-0.35px]">
-            {idea.postedAt}
-          </span>
-        </span>
+        ) : null}
         <span className="flex items-end">
           <span className="flex size-5 items-center justify-center">
             <CoinIcon className="size-[13.333px]" />
