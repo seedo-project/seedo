@@ -83,10 +83,18 @@ BEGIN
         USING (author_id = auth.uid())
         WITH CHECK (author_id = auth.uid());
 
-    -- post_comments: V10 동일 패턴.
+    -- post_comments: V10 동일 패턴 — 부모 post 가 PUBLISHED 이면서 미삭제일 때만 공개.
     CREATE POLICY post_comments_public_select ON public.post_comments
         FOR SELECT TO public
-        USING (deleted_at IS NULL);
+        USING (
+            deleted_at IS NULL
+            AND EXISTS (
+                SELECT 1 FROM public.posts p
+                WHERE p.id = post_comments.post_id
+                  AND p.status = 'PUBLISHED'
+                  AND p.deleted_at IS NULL
+            )
+        );
     CREATE POLICY post_comments_author_insert ON public.post_comments
         FOR INSERT TO authenticated
         WITH CHECK (author_id = auth.uid());

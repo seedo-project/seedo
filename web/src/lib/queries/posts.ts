@@ -26,13 +26,14 @@ function previewFromBody(body: string): string {
 
 export async function fetchPosts(): Promise<Post[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("posts")
     .select("id, post_type, title, body, created_at")
     .eq("status", "PUBLISHED")
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(100);
+  if (error) throw error;
 
   return (data ?? []).map((p) => ({
     id: String(p.id),
@@ -49,13 +50,13 @@ export async function fetchPostDetail(id: string): Promise<PostDetail> {
   const numericId = Number(id);
   if (!Number.isFinite(numericId)) notFound();
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("posts")
     .select("id, author_id, post_type, title, body, status, created_at")
     .eq("id", numericId)
     .is("deleted_at", null)
     .maybeSingle();
-
+  if (error) throw error;
   if (!data) notFound();
 
   const {
