@@ -90,7 +90,7 @@
 
 ### 도메인별 패키지 구조
 
-```
+```text
 dev.seedo.{auth/credit/user/idea/project/reward/post}
 ├── domain/         JPA 엔티티 (aggregate root)
 ├── application/    @Service @Transactional
