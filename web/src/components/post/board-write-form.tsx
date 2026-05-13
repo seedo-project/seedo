@@ -61,24 +61,28 @@ export function BoardWriteForm() {
       toast.error("로그인이 필요합니다");
       return;
     }
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from("posts")
-      .insert({
-        author_id: user.id,
-        post_type: values.postType,
-        title: values.title.trim(),
-        body: values.body.trim(),
-      })
-      .select("id")
-      .single();
-    if (error || !data) {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("posts")
+        .insert({
+          author_id: user.id,
+          post_type: values.postType,
+          title: values.title.trim(),
+          body: values.body.trim(),
+        })
+        .select("id")
+        .single();
+      if (error || !data) {
+        toast.error("게시물 등록에 실패했습니다");
+        return;
+      }
+      toast.success("게시물을 등록했습니다");
+      router.push(`/board/${data.id}`);
+      router.refresh();
+    } catch {
       toast.error("게시물 등록에 실패했습니다");
-      return;
     }
-    toast.success("게시물을 등록했습니다");
-    router.push(`/board/${data.id}`);
-    router.refresh();
   };
 
   return (

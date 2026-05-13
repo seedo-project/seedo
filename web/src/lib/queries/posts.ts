@@ -64,11 +64,12 @@ export async function fetchPostDetail(id: string): Promise<PostDetail> {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: author } = await supabase
+  const { data: author, error: authorError } = await supabase
     .from("public_profiles")
     .select("nickname")
     .eq("id", data.author_id)
     .maybeSingle();
+  if (authorError) throw authorError;
 
   return {
     id: String(data.id),
