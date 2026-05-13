@@ -10,6 +10,7 @@ import dev.seedo.idea.infrastructure.IdeaChatSessionRepository;
 import dev.seedo.idea.infrastructure.IdeaDocumentRepository;
 import dev.seedo.idea.infrastructure.IdeaRepository;
 import dev.seedo.support.AbstractIntegrationTest;
+import dev.seedo.support.IntegrationTestStubsConfig;
 import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
@@ -37,7 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * {@code POST /api/v1/chat-sessions/{id}/finalize} HTTP 통합 — JWT 인증 → @PreAuthorize → service →
  * ApiResponse 봉투까지 한 줄로 흐르는지 검증. 본문 자동 작성 흐름 (#127): 클라가 마크다운을 보내지 않고
  * LLM 응답이 그대로 저장된다. {@link dev.seedo.idea.application.port.out.ChatClient} 는 stub 빈
- * (`stub title` / `stub content markdown` 결정적 응답).
+ * (`stub title` + 5개 섹션 STUB_CONTENT_MD + 키워드 3개 결정적 응답).
  *
  * <p>클래스 레벨 {@code @Transactional} 을 쓰지 않는다 (lessons F.5). service 가 외부 호출 + INSERT 트랜잭션을
  * {@code TransactionTemplate} 으로 분리하므로 outer 와 join 되면 그 경계 자체가 검증 안 된다. 격리는 매 테스트가
@@ -103,7 +104,8 @@ class ChatSessionFinalizeControllerIT extends AbstractIntegrationTest {
         assertThat(ideaRepo.findById(ideaId).orElseThrow().getCurrentVersionId()).isEqualTo(docId);
         var doc = docRepo.findById(docId).orElseThrow();
         assertThat(doc.getTitle()).isEqualTo("stub title");
-        assertThat(doc.getContentMd()).isEqualTo("stub content markdown");
+        // 5개 섹션 (## Problem ... ## Insight) 마크다운 — 페이지 구조 S303 정형화 회귀 가드.
+        assertThat(doc.getContentMd()).isEqualTo(IntegrationTestStubsConfig.STUB_CONTENT_MD);
     }
 
     @Test

@@ -18,6 +18,7 @@ import dev.seedo.idea.infrastructure.IdeaChatSessionRepository;
 import dev.seedo.idea.infrastructure.IdeaDocumentRepository;
 import dev.seedo.idea.infrastructure.IdeaRepository;
 import dev.seedo.support.AbstractIntegrationTest;
+import dev.seedo.support.IntegrationTestStubsConfig;
 import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
@@ -93,7 +94,8 @@ class FinalizeChatSessionServiceIT extends AbstractIntegrationTest {
         assertThat(doc.getIdeaId()).isEqualTo(idea.getId());
         assertThat(doc.getVersion()).isEqualTo(1);
         assertThat(doc.getTitle()).isEqualTo("stub title");
-        assertThat(doc.getContentMd()).isEqualTo("stub content markdown");
+        // 5개 섹션 (## Problem / ## Solution / ## Target User / ## Market / ## Insight) 마크다운.
+        assertThat(doc.getContentMd()).isEqualTo(IntegrationTestStubsConfig.STUB_CONTENT_MD);
 
         IdeaChatSession reloaded = sessionRepo.findById(f.sessionId).orElseThrow();
         assertThat(reloaded.getStatus()).isEqualTo(ChatSessionStatus.FINALIZED);

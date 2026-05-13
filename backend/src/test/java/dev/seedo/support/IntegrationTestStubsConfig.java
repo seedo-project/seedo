@@ -24,7 +24,28 @@ public class IntegrationTestStubsConfig {
         return text -> new float[1536];
     }
 
-    /** 결정적 stub — 챗봇 호출은 고정 응답, finalize 합성은 고정 draft (5개 섹션 + 키워드). */
+    /**
+     * 결정적 stub — 챗봇 호출은 고정 응답, finalize 합성은 고정 draft. contentMd 는 실제 어댑터 계약과 같은
+     * 5개 섹션 (## Problem / ## Solution / ## Target User / ## Market / ## Insight) 형태로 — IT 가 본문 정형화
+     * 회귀를 잡을 수 있게 한다.
+     */
+    public static final String STUB_CONTENT_MD = """
+            ## Problem
+            stub problem
+
+            ## Solution
+            stub solution
+
+            ## Target User
+            stub target user
+
+            ## Market
+            stub market
+
+            ## Insight
+            stub insight
+            """;
+
     @Bean
     public ChatClient stubChatClient() {
         return new ChatClient() {
@@ -37,7 +58,7 @@ public class IntegrationTestStubsConfig {
             public IdeaDocumentDraft synthesizeIdeaDocument(java.util.List<ChatTurn> turns) {
                 return new IdeaDocumentDraft(
                         "stub title",
-                        "stub content markdown",
+                        STUB_CONTENT_MD,
                         java.util.List.of("stub-keyword-1", "stub-keyword-2", "stub-keyword-3")
                 );
             }

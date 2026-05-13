@@ -11,6 +11,7 @@ import dev.seedo.idea.domain.IdeaChatSession;
 import dev.seedo.idea.infrastructure.IdeaChatMessageRepository;
 import dev.seedo.idea.infrastructure.IdeaChatSessionRepository;
 import dev.seedo.support.AbstractIntegrationTest;
+import dev.seedo.support.IntegrationTestStubsConfig;
 import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
@@ -100,8 +101,8 @@ class IdeaEmbeddingRefreshListenerIT extends AbstractIntegrationTest {
             assertThat(keywordsOf(ideaId)).containsExactly(
                     "stub-keyword-1", "stub-keyword-2", "stub-keyword-3");
         });
-        // finalize 본문은 ChatClient stub draft → "stub content markdown" 가 임베딩에 보내짐.
-        verify(embeddingClient, atLeastOnce()).embed("stub content markdown");
+        // finalize 본문은 ChatClient stub draft 의 STUB_CONTENT_MD 가 임베딩에 보내짐 (5개 섹션 마크다운).
+        verify(embeddingClient, atLeastOnce()).embed(IntegrationTestStubsConfig.STUB_CONTENT_MD);
     }
 
     @Test

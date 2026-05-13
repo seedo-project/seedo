@@ -176,19 +176,28 @@ public class OpenAiChatAdapter implements ChatClient {
         return new IdeaDocumentDraft(title, contentMd, extractKeywords(node.get("keywords")));
     }
 
+    /** 카드 노출용 키워드 (페이지 구조 S201). 시스템 프롬프트의 5~10개 계약을 어댑터에서 한 번 더 강제. */
+    private static final int MAX_KEYWORDS = 10;
+
     private static List<String> extractKeywords(JsonNode arrayNode) {
         if (arrayNode == null || !arrayNode.isArray()) {
             return List.of();
         }
-        List<String> keywords = new ArrayList<>(arrayNode.size());
-        arrayNode.forEach(item -> {
-            if (item != null && !item.isNull()) {
-                String trimmed = item.asText().trim();
-                if (!trimmed.isEmpty()) {
-                    keywords.add(trimmed);
-                }
+        // 상한 + 중복 제거 — 모델이 가끔 11개 이상 / 같은 키워드 2번 반환하는 경우를 어댑터 단계에서 정제.
+        // isTextual() 로 숫자/객체 같은 비-텍스트 노드는 명시 거부 (asText() 가 강제 변환하는 걸 회피).
+        List<String> keywords = new ArrayList<>(MAX_KEYWORDS);
+        for (JsonNode item : arrayNode) {
+            if (keywords.size() >= MAX_KEYWORDS) {
+                break;
             }
-        });
+            if (item == null || !item.isTextual()) {
+                continue;
+            }
+            String trimmed = item.asText().trim();
+            if (!trimmed.isEmpty() && !keywords.contains(trimmed)) {
+                keywords.add(trimmed);
+            }
+        }
         return List.copyOf(keywords);
     }
 

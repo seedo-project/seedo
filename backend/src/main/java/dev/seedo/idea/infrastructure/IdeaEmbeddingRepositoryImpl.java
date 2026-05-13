@@ -104,18 +104,21 @@ public class IdeaEmbeddingRepositoryImpl implements IdeaEmbeddingRepositoryCusto
         if (pgArray == null) {
             return List.of();
         }
-        // PG JDBC 가 text[] 를 String[] 로 반환. defensive 한 ClassCast.
+        // PG JDBC 가 text[] 를 String[] 로 반환하는 게 일반 경로.
         if (pgArray instanceof String[] arr) {
             return List.of(arr);
         }
-        // 일부 드라이버는 java.sql.Array 로 반환할 수 있다 — 미사용 경로지만 방어.
-        try {
-            Object inner = ((java.sql.Array) pgArray).getArray();
-            if (inner instanceof String[] arr) {
-                return List.of(arr);
+        // 일부 드라이버 / 환경은 java.sql.Array 로 반환할 수 있다 — instanceof 로 가드 후 풀어본다.
+        // (가드 없이 캐스팅하면 String[] / java.sql.Array 둘 다 아닌 미지의 타입에서 ClassCastException.)
+        if (pgArray instanceof java.sql.Array sqlArray) {
+            try {
+                Object inner = sqlArray.getArray();
+                if (inner instanceof String[] arr) {
+                    return List.of(arr);
+                }
+            } catch (java.sql.SQLException ignored) {
+                // fall through — 빈 List 로 떨어짐
             }
-        } catch (java.sql.SQLException ignored) {
-            // fall through
         }
         return List.of();
     }
