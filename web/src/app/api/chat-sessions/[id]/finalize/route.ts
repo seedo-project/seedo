@@ -19,11 +19,13 @@ export async function POST(
       method: "POST",
     });
     const body = await res.text();
+    const contentType = res.headers.get("content-type") ?? "application/json";
     return new NextResponse(body, {
       status: res.status,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": contentType },
     });
-  } catch {
+  } catch (err) {
+    console.error("chat finalize proxy failed", err);
     return NextResponse.json(
       { status: "ERROR", message: "서버에 연결할 수 없습니다", data: null },
       { status: 502 },
