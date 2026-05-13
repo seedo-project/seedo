@@ -59,34 +59,39 @@ export function CommentSection({
     }
     setBusy(true);
     startTransition(async () => {
-      const { data, error } = await supabase
-        .from(table)
-        .insert({
-          author_id: user.id,
-          [targetCol]: targetId,
-          content,
-        })
-        .select("id, created_at, updated_at")
-        .single();
-
-      if (error || !data) {
-        toast.error("댓글 작성에 실패했습니다");
-      } else {
-        setComments((prev) => [
-          ...prev,
-          {
-            id: Number(data.id),
-            authorId: user.id,
-            authorName: user.displayName ?? user.nickname,
+      try {
+        const { data, error } = await supabase
+          .from(table)
+          .insert({
+            author_id: user.id,
+            [targetCol]: targetId,
             content,
-            createdAt: data.created_at,
-            updatedAt: data.updated_at,
-            isAuthor: true,
-          },
-        ]);
-        setDraft("");
+          })
+          .select("id, created_at, updated_at")
+          .single();
+
+        if (error || !data) {
+          toast.error("댓글 작성에 실패했습니다");
+        } else {
+          setComments((prev) => [
+            ...prev,
+            {
+              id: Number(data.id),
+              authorId: user.id,
+              authorName: user.displayName ?? user.nickname,
+              content,
+              createdAt: data.created_at,
+              updatedAt: data.updated_at,
+              isAuthor: true,
+            },
+          ]);
+          setDraft("");
+        }
+      } catch {
+        toast.error("댓글 작성에 실패했습니다");
+      } finally {
+        setBusy(false);
       }
-      setBusy(false);
     });
   };
 
@@ -101,19 +106,24 @@ export function CommentSection({
     if (!content) return;
     setBusy(true);
     startTransition(async () => {
-      const { error } = await supabase
-        .from(table)
-        .update({ content })
-        .eq("id", c.id);
-      if (error) {
+      try {
+        const { error } = await supabase
+          .from(table)
+          .update({ content })
+          .eq("id", c.id);
+        if (error) {
+          toast.error("댓글 수정에 실패했습니다");
+        } else {
+          setComments((prev) =>
+            prev.map((x) => (x.id === c.id ? { ...x, content } : x)),
+          );
+          setEditingId(null);
+        }
+      } catch {
         toast.error("댓글 수정에 실패했습니다");
-      } else {
-        setComments((prev) =>
-          prev.map((x) => (x.id === c.id ? { ...x, content } : x)),
-        );
-        setEditingId(null);
+      } finally {
+        setBusy(false);
       }
-      setBusy(false);
     });
   };
 
@@ -124,15 +134,21 @@ export function CommentSection({
     const prev = comments;
     setComments((cur) => cur.filter((x) => x.id !== c.id));
     startTransition(async () => {
-      const { error } = await supabase
-        .from(table)
-        .update({ deleted_at: new Date().toISOString() })
-        .eq("id", c.id);
-      if (error) {
+      try {
+        const { error } = await supabase
+          .from(table)
+          .update({ deleted_at: new Date().toISOString() })
+          .eq("id", c.id);
+        if (error) {
+          setComments(prev);
+          toast.error("댓글 삭제에 실패했습니다");
+        }
+      } catch {
         setComments(prev);
         toast.error("댓글 삭제에 실패했습니다");
+      } finally {
+        setBusy(false);
       }
-      setBusy(false);
     });
   };
 

@@ -37,21 +37,23 @@ export async function fetchComments(
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: rows } = await supabase
+  const { data: rows, error: rowsError } = await supabase
     .from(tableFor(target))
     .select("id, author_id, content, created_at, updated_at")
     .eq(targetColFor(target), targetId)
     .is("deleted_at", null)
     .order("created_at", { ascending: true });
+  if (rowsError) throw rowsError;
 
   const comments = rows ?? [];
   if (comments.length === 0) return [];
 
   const authorIds = [...new Set(comments.map((c) => c.author_id))];
-  const { data: profiles } = await supabase
+  const { data: profiles, error: profilesError } = await supabase
     .from("public_profiles")
     .select("id, nickname")
     .in("id", authorIds);
+  if (profilesError) throw profilesError;
 
   const nameById = new Map(
     (profiles ?? []).map((p) => [p.id, p.nickname ?? "익명"]),
