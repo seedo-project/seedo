@@ -22,13 +22,16 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * 자연어 검색 API 의 HTTP 레이어 통합 — 정렬 정확성, PUBLISHED 가드, limit 클램프, 빈 쿼리 400.
+ * 하이브리드 검색 API 의 HTTP 레이어 통합 — 임베딩/키워드 양쪽 신호의 RRF 결합, PUBLISHED 가드,
+ * limit 클램프, 빈 쿼리 400. RRF / fallback 의 세부 분기는 {@link SearchIdeasServiceIT} 가 cover.
  *
  * <p>{@link EmbeddingClient} 는 query 별 다른 vector 를 반환하도록 mock 으로 교체. 임베딩 row 는
  * IT 가 직접 {@link IdeaEmbeddingRepository#upsertEmbedding} 으로 박는다 (listener 가 발화하는
@@ -67,15 +70,15 @@ class IdeaSearchControllerIT extends AbstractIntegrationTest {
     private IdeaEmbeddingRepository embeddingRepo;
 
     @Test
-    void returns_closest_idea_first_with_keywords() throws Exception {
+    void returns_top_match_first_with_keywords() throws Exception {
         UUID author = UserFixture.create(userRepo);
         UUID viewer = UserFixture.create(userRepo);
+        // ideaB 는 임베딩 cosine 1 + 키워드 overlap("스터디") — 두 신호 모두에서 1위.
         Long ideaA = publishedWithEmbedding(author, oneHot(0), List.of("학습", "타이머"));
         Long ideaB = publishedWithEmbedding(author, oneHot(1), List.of("스터디", "그룹"));
         Long ideaC = publishedWithEmbedding(author, oneHot(2), List.of("운동"));
 
         primeAuth(viewer);
-        // query 임베딩이 ideaB 와 같은 1-hot → cosine similarity 1, 나머지는 0 → ideaB 가 첫 번째.
         when(embeddingClient.embed("스터디 메이트")).thenReturn(oneHot(1));
 
         mockMvc.perform(get(PATH).param("q", "스터디 메이트").header("Authorization", BEARER))
@@ -83,12 +86,15 @@ class IdeaSearchControllerIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.status").value("OK"))
                 .andExpect(jsonPath("$.data.length()").value(3))
                 .andExpect(jsonPath("$.data[0].ideaId").value(ideaB))
-                .andExpect(jsonPath("$.data[0].similarity").value(1.0))
+                // RRF 점수의 절대값은 해석하지 않는다 (호출자도 정렬 순서만 사용) — 필드가 number 로
+                // 직렬화되는지만 확인. greaterThan(0.0) 같은 Matcher 는 Jayway 가 BigDecimal 로 추출할 때
+                // Double 캐스트 실패로 ClassCastException 이 나는 알려진 함정이라 피한다.
+                .andExpect(jsonPath("$.data[0].score").isNumber())
                 .andExpect(jsonPath("$.data[0].priceCredits").value(10))
                 // 카드 노출용 키워드가 응답에 그대로 포함되어야 한다 (페이지 구조 S201).
                 .andExpect(jsonPath("$.data[0].keywords[0]").value("스터디"))
                 .andExpect(jsonPath("$.data[0].keywords[1]").value("그룹"))
-                // ideaA / ideaC 는 다른 1-hot 이라 cosine similarity 0 — 동률이지만 결과에 포함되어야 한다.
+                // ideaA / ideaC 는 키워드 overlap 0 + cosine 0 이지만 임베딩 결과의 candidate 풀에 들어와 있으므로 노출.
                 .andExpect(jsonPath("$.data[?(@.ideaId == " + ideaA + ")]").exists())
                 .andExpect(jsonPath("$.data[?(@.ideaId == " + ideaC + ")]").exists());
     }
@@ -158,6 +164,93 @@ class IdeaSearchControllerIT extends AbstractIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("ERROR"))
                 .andExpect(jsonPath("$.message").value(containsString("blank")));
+    }
+
+    /**
+     * 키워드 매칭만 있고 임베딩 신호는 어느 쪽도 닿지 않는 시나리오 — 쿼리 토큰이 정확히 ideaA 의 keywords
+     * 와 겹치고, 임베딩은 ideaC 와 동일하지만 키워드 신호의 RRF 가중치가 더 커서 ideaA 가 위로 와야 한다.
+     */
+    @Test
+    void keyword_match_outranks_embedding_only_match() throws Exception {
+        UUID author = UserFixture.create(userRepo);
+        UUID viewer = UserFixture.create(userRepo);
+        // ideaA: 키워드 매칭 1개 ("타이머"), 임베딩 cosine 0.
+        Long ideaA = publishedWithEmbedding(author, oneHot(0), List.of("학습", "타이머"));
+        // ideaC: 키워드 매칭 0, 임베딩 cosine 1 — 임베딩 단독으로는 1위지만 키워드 신호가 없어 RRF 에선 ideaA 보다 같은 가중치.
+        Long ideaC = publishedWithEmbedding(author, oneHot(2), List.of("운동"));
+
+        primeAuth(viewer);
+        when(embeddingClient.embed("타이머")).thenReturn(oneHot(2));
+
+        mockMvc.perform(get(PATH).param("q", "타이머").header("Authorization", BEARER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(2))
+                // 두 신호 모두에서 rank 1 인 ideaA 가 위 (키워드 1위 + 임베딩 2위) > ideaC (임베딩 1위 only).
+                .andExpect(jsonPath("$.data[0].ideaId").value(ideaA))
+                .andExpect(jsonPath("$.data[1].ideaId").value(ideaC));
+    }
+
+    /**
+     * 임베딩 단독 매칭 — 쿼리 토큰이 어떤 카드의 keywords 와도 겹치지 않는 시나리오. 키워드 결과 빈
+     * 리스트라 임베딩 결과만으로 정렬된다 (cosine 거리 오름차순 = RRF rank 1, 2, 3 순).
+     */
+    @Test
+    void embedding_only_orders_by_cosine() throws Exception {
+        UUID author = UserFixture.create(userRepo);
+        UUID viewer = UserFixture.create(userRepo);
+        Long ideaA = publishedWithEmbedding(author, oneHot(0), List.of("학습"));
+        Long ideaB = publishedWithEmbedding(author, oneHot(1), List.of("운동"));
+
+        primeAuth(viewer);
+        // 쿼리 "abcxyz" 는 어떤 keywords 와도 겹치지 않음. 임베딩만 ideaB 와 동일 (1-hot dim=1).
+        when(embeddingClient.embed("abcxyz")).thenReturn(oneHot(1));
+
+        mockMvc.perform(get(PATH).param("q", "abcxyz").header("Authorization", BEARER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(2))
+                .andExpect(jsonPath("$.data[0].ideaId").value(ideaB))
+                .andExpect(jsonPath("$.data[1].ideaId").value(ideaA));
+    }
+
+    /**
+     * graceful degradation — 임베딩 클라이언트가 던지면 키워드 결과만으로 응답이 살아남는다.
+     * 임베딩이 빠지면 OpenAI 의 외부 의존이 죽어도 검색 자체는 동작 (이슈 #138).
+     */
+    @Test
+    void embedding_failure_falls_back_to_keyword_only() throws Exception {
+        UUID author = UserFixture.create(userRepo);
+        UUID viewer = UserFixture.create(userRepo);
+        Long ideaA = publishedWithEmbedding(author, oneHot(0), List.of("스터디", "타이머"));
+        Long ideaB = publishedWithEmbedding(author, oneHot(1), List.of("운동"));
+
+        primeAuth(viewer);
+        when(embeddingClient.embed(anyString()))
+                .thenThrow(new RuntimeException("openai 5xx (graceful degradation 검증용)"));
+
+        mockMvc.perform(get(PATH).param("q", "스터디").header("Authorization", BEARER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].ideaId").value(ideaA))
+                .andExpect(jsonPath("$.data[?(@.ideaId == " + ideaB + ")]").doesNotExist());
+    }
+
+    /**
+     * 토큰 분리 / 정규화 — 쿼리에 구두점·공백이 섞여도 lower-case 토큰으로 분리해 keywords 와 매칭된다.
+     */
+    @Test
+    void tokenizer_splits_on_punctuation_and_lowercases() throws Exception {
+        UUID author = UserFixture.create(userRepo);
+        UUID viewer = UserFixture.create(userRepo);
+        Long ideaA = publishedWithEmbedding(author, oneHot(0), List.of("ios", "앱"));
+
+        primeAuth(viewer);
+        when(embeddingClient.embed(any())).thenReturn(oneHot(5));
+
+        mockMvc.perform(get(PATH).param("q", "iOS, 앱!").header("Authorization", BEARER))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].ideaId").value(ideaA))
+                // 카드 키워드는 finalize 시 저장된 그대로 (lower-case 가정).
+                .andExpect(jsonPath("$.data[0].keywords[0]").value("ios"));
     }
 
     private Long publishedWithEmbedding(UUID author, float[] embedding, List<String> keywords) {
