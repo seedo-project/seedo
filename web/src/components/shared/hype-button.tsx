@@ -37,29 +37,36 @@ export function HypeButton({
     const prevCount = count;
     const nextHyped = !prevHyped;
     setHyped(nextHyped);
-    setCount(prevCount + (nextHyped ? 1 : -1));
+    setCount(Math.max(0, prevCount + (nextHyped ? 1 : -1)));
     setBusy(true);
 
     startTransition(async () => {
-      const supabase = createClient();
-      const targetCol = target.kind === "idea" ? "idea_id" : "project_id";
+      try {
+        const supabase = createClient();
+        const targetCol = target.kind === "idea" ? "idea_id" : "project_id";
 
-      const { error } = nextHyped
-        ? await supabase
-            .from("hypes")
-            .insert({ user_id: user.id, [targetCol]: target.id })
-        : await supabase
-            .from("hypes")
-            .delete()
-            .eq("user_id", user.id)
-            .eq(targetCol, target.id);
+        const { error } = nextHyped
+          ? await supabase
+              .from("hypes")
+              .insert({ user_id: user.id, [targetCol]: target.id })
+          : await supabase
+              .from("hypes")
+              .delete()
+              .eq("user_id", user.id)
+              .eq(targetCol, target.id);
 
-      if (error) {
+        if (error) {
+          setHyped(prevHyped);
+          setCount(prevCount);
+          toast.error("좋아요 처리에 실패했습니다");
+        }
+      } catch {
         setHyped(prevHyped);
         setCount(prevCount);
         toast.error("좋아요 처리에 실패했습니다");
+      } finally {
+        setBusy(false);
       }
-      setBusy(false);
     });
   };
 
