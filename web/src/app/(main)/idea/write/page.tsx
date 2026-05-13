@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 
 import { ChatComposer } from "@/components/idea/chat/chat-composer";
 import { MessageList } from "@/components/idea/chat/message-list";
 import type { ChatMessage } from "@/components/idea/chat/types";
+import { Button } from "@/components/ui/button";
 import { toast } from "@/lib/toast";
 import type {
   ApiResponse,
+  FinalizeChatSessionResponse,
   SendChatMessageResponse,
   StartChatSessionResponse,
 } from "@/types/chat";
@@ -26,9 +29,12 @@ async function parseEnvelope<T>(res: Response): Promise<T> {
 }
 
 export default function IdeaWritePage() {
+  const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [sending, setSending] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
+  const finalizingRef = useRef(false);
 
   const send = async (text: string) => {
     const userMsg: ChatMessage = {
@@ -68,6 +74,24 @@ export default function IdeaWritePage() {
     }
   };
 
+  const finalize = async () => {
+    if (sessionId === null || finalizingRef.current) return;
+    finalizingRef.current = true;
+    setFinalizing(true);
+    try {
+      const res = await fetch(`/api/chat-sessions/${sessionId}/finalize`, {
+        method: "POST",
+      });
+      const result = await parseEnvelope<FinalizeChatSessionResponse>(res);
+      router.push(`/idea/${result.ideaId}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "마무리에 실패했습니다";
+      toast.error(msg);
+      finalizingRef.current = false;
+      setFinalizing(false);
+    }
+  };
+
   if (messages.length === 0) {
     return (
       <main className="flex min-h-[calc(100svh-108px)] flex-col items-center justify-center px-[100px] pb-24">
@@ -81,17 +105,35 @@ export default function IdeaWritePage() {
     );
   }
 
+  const canFinalize = sessionId !== null && !sending && !finalizing;
+
   return (
     <main className="relative min-h-[calc(100svh-108px)]">
-      <div className="flex flex-col items-center px-[100px] pb-40 pt-10">
+      <div className="sticky top-0 z-10 flex justify-end border-b border-transparent bg-white/90 px-[100px] py-4 backdrop-blur-sm">
+        <Button
+          variant="default"
+          size="lg"
+          onClick={finalize}
+          disabled={!canFinalize}
+        >
+          {finalizing ? "마무리하는 중..." : "마무리하기"}
+        </Button>
+      </div>
+      <div className="flex flex-col items-center px-[100px] pb-40 pt-6">
         <MessageList messages={messages} />
       </div>
       <div className="sticky bottom-8 flex justify-center pointer-events-none">
         <div className="pointer-events-auto">
           <ChatComposer
             onSend={send}
-            disabled={sending}
-            placeholder={sending ? "응답을 기다리는 중..." : "메시지를 입력하세요"}
+            disabled={sending || finalizing}
+            placeholder={
+              finalizing
+                ? "마무리하는 중..."
+                : sending
+                  ? "응답을 기다리는 중..."
+                  : "메시지를 입력하세요"
+            }
           />
         </div>
       </div>
