@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { AdoptButton } from "@/components/idea/adopt-button";
 import { CommentSection } from "@/components/shared/comment-section";
 import { HypeButton } from "@/components/shared/hype-button";
@@ -28,6 +30,14 @@ export default async function IdeaDetailPage({
               {idea.title}
             </h1>
             <div className="flex items-center gap-2">
+              {idea.isAuthor && (
+                <Link
+                  href={`/idea/${idea.id}/edit`}
+                  className="flex h-9 items-center justify-center rounded-md border border-input bg-transparent px-4 py-2 text-sm leading-[1.3] font-semibold tracking-[-0.35px] text-muted-foreground hover:bg-muted"
+                >
+                  본문 수정
+                </Link>
+              )}
               <HypeButton
                 target={{ kind: "idea", id: ideaIdNum }}
                 initialCount={hype.count}
