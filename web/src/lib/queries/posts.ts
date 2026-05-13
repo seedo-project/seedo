@@ -47,8 +47,9 @@ export async function fetchPosts(): Promise<Post[]> {
 
 export async function fetchPostDetail(id: string): Promise<PostDetail> {
   const supabase = await createClient();
+  if (!/^\d+$/.test(id)) notFound();
   const numericId = Number(id);
-  if (!Number.isFinite(numericId)) notFound();
+  if (!Number.isSafeInteger(numericId) || numericId <= 0) notFound();
 
   const { data, error } = await supabase
     .from("posts")
