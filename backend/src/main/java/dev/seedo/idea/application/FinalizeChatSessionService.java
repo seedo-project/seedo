@@ -116,7 +116,9 @@ public class FinalizeChatSessionService {
 
             locked.finalize(idea.getId());
 
-            events.publishEvent(new IdeaVersionPublishedEvent(idea.getId(), doc.getId(), doc.getVersion()));
+            // 키워드는 finalize 시점에 LLM 이 본문과 함께 추출 — 페이지 구조 S201 카드 노출용.
+            events.publishEvent(new IdeaVersionPublishedEvent(
+                    idea.getId(), doc.getId(), doc.getVersion(), draft.keywords()));
             return new FinalizeChatSessionResult(idea.getId(), doc.getId(), doc.getVersion());
         });
     }

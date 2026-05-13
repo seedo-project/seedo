@@ -13,12 +13,17 @@ import java.util.List;
 public interface IdeaEmbeddingRepositoryCustom {
 
     /**
-     * 임베딩 upsert. row 가 없으면 INSERT, 있으면 embedding 만 갱신 (keywords 는 보존).
+     * 임베딩 + 키워드 upsert. row 가 없으면 INSERT, 있으면 embedding 갱신.
+     *
+     * <p>{@code keywords} 가 비어있으면 (List.of()) embedding 만 갱신하고 기존 keywords 를 보존한다 —
+     * 새 버전 발행(PublishIdeaVersionService) 은 키워드를 재추출하지 않으므로 finalize 가 박은 키워드를
+     * 그대로 유지하기 위함. 비어있지 않으면 keywords 도 함께 EXCLUDED 로 덮는다.
      *
      * @param ideaId    대상 아이디어 id
      * @param embedding 차원이 컬럼 정의 ({@code vector(1536)}) 와 일치해야 한다 — 안 맞으면 Postgres 가 거부
+     * @param keywords  카드 노출용 키워드. 빈 List 면 기존 보존
      */
-    void upsertEmbedding(long ideaId, float[] embedding);
+    void upsertEmbedding(long ideaId, float[] embedding, List<String> keywords);
 
     /**
      * 쿼리 임베딩과 cosine 거리가 가까운 PUBLISHED 아이디어를 정렬해 반환.

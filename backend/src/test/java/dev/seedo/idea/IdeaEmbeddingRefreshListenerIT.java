@@ -11,6 +11,7 @@ import dev.seedo.idea.domain.IdeaChatSession;
 import dev.seedo.idea.infrastructure.IdeaChatMessageRepository;
 import dev.seedo.idea.infrastructure.IdeaChatSessionRepository;
 import dev.seedo.support.AbstractIntegrationTest;
+import dev.seedo.support.IntegrationTestStubsConfig;
 import dev.seedo.support.UserFixture;
 import dev.seedo.user.infrastructure.UserRepository;
 import jakarta.persistence.EntityManager;
@@ -84,7 +85,7 @@ class IdeaEmbeddingRefreshListenerIT extends AbstractIntegrationTest {
     }
 
     @Test
-    void finalize_triggers_embedding_upsert_after_commit() {
+    void finalize_triggers_embedding_upsert_with_keywords() {
         UUID user = tx.execute(s -> UserFixture.create(userRepo));
         Long sessionId = setupSessionWithMessage(user, "대화 한 줄");
 
@@ -96,13 +97,16 @@ class IdeaEmbeddingRefreshListenerIT extends AbstractIntegrationTest {
         await().untilAsserted(() -> {
             assertThat(embeddingRowExists(ideaId)).isTrue();
             assertThat(firstDimension(ideaId)).isEqualTo(1.0f);
+            // ChatClient stub 의 draft.keywords (`stub-keyword-1/2/3`) 가 idea_embeddings.keywords 에 박힘.
+            assertThat(keywordsOf(ideaId)).containsExactly(
+                    "stub-keyword-1", "stub-keyword-2", "stub-keyword-3");
         });
-        // finalize 본문은 ChatClient stub draft → "stub content markdown" 가 임베딩에 보내짐.
-        verify(embeddingClient, atLeastOnce()).embed("stub content markdown");
+        // finalize 본문은 ChatClient stub draft 의 STUB_CONTENT_MD 가 임베딩에 보내짐 (5개 섹션 마크다운).
+        verify(embeddingClient, atLeastOnce()).embed(IntegrationTestStubsConfig.STUB_CONTENT_MD);
     }
 
     @Test
-    void publish_triggers_embedding_upsert_overwriting_previous() {
+    void publish_keeps_previous_keywords_when_event_carries_empty_list() {
         UUID user = tx.execute(s -> UserFixture.create(userRepo));
         Long sessionId = setupSessionWithMessage(user, "초기 대화");
 
@@ -111,15 +115,19 @@ class IdeaEmbeddingRefreshListenerIT extends AbstractIntegrationTest {
         await().untilAsserted(() -> assertThat(embeddingRowExists(ideaId)).isTrue());
 
         // publish 는 클라가 보낸 새 버전 본문을 그대로 사용 (finalize 와 달리 LLM 합성 없음).
+        // 이벤트의 keywords 는 빈 List — listener 가 keywords 갱신 skip, finalize 키워드 보존.
         publishService.publish(new PublishIdeaVersionCommand(ideaId, user, "v2", "본문 v2"));
 
-        // upsert 동작 — 같은 idea_id 가 ON CONFLICT 로 UPDATE. 한 row 만 남는다.
         await().untilAsserted(() -> {
+            // upsert 동작 — 같은 idea_id 가 ON CONFLICT 로 UPDATE. 한 row 만 남는다.
             assertThat(embeddingRowCount(ideaId)).isEqualTo(1L);
             assertThat(firstDimension(ideaId)).isEqualTo(1.0f);
+            // finalize 가 박은 키워드가 보존되어야 한다 (publish 가 빈 List 발행 → keywords 컬럼 미갱신).
+            assertThat(keywordsOf(ideaId)).containsExactly(
+                    "stub-keyword-1", "stub-keyword-2", "stub-keyword-3");
         });
-        verify(embeddingClient).embed("stub content markdown");
-        verify(embeddingClient).embed("본문 v2");
+        verify(embeddingClient).embed(IntegrationTestStubsConfig.STUB_CONTENT_MD);  // finalize 호출
+        verify(embeddingClient).embed("본문 v2");                                       // publish 호출
     }
 
     @Test
@@ -176,5 +184,28 @@ class IdeaEmbeddingRefreshListenerIT extends AbstractIntegrationTest {
                 .setParameter("id", ideaId)
                 .getSingleResult();
         return d.floatValue();
+    }
+
+    /**
+     * idea_embeddings.keywords 추출. PG text[] 는 PG JDBC 가 String[] 또는 java.sql.Array 로 반환.
+     * Native query 단일 컬럼은 Object 자체 (Object[] 아님).
+     */
+    private java.util.List<String> keywordsOf(Long ideaId) {
+        Object value = em.createNativeQuery(
+                        "SELECT keywords FROM idea_embeddings WHERE idea_id = :id")
+                .setParameter("id", ideaId)
+                .getSingleResult();
+        if (value instanceof String[] strArr) {
+            return java.util.List.of(strArr);
+        }
+        if (value instanceof java.sql.Array sqlArr) {
+            try {
+                return java.util.List.of((String[]) sqlArr.getArray());
+            } catch (java.sql.SQLException e) {
+                throw new IllegalStateException("failed to read keywords array", e);
+            }
+        }
+        throw new IllegalStateException(
+                "unexpected keywords column type: " + (value == null ? "null" : value.getClass().getName()));
     }
 }

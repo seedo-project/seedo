@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 /**
  * 아이디어 본문 새 버전 발행 (CLAUDE.md §8.4):
  * <ol>
@@ -57,7 +59,10 @@ public class PublishIdeaVersionService {
                 new IdeaDocument(cmd.ideaId(), nextVersion, cmd.title(), cmd.contentMd()));
         idea.updateCurrentVersion(doc.getId());
 
-        events.publishEvent(new IdeaVersionPublishedEvent(idea.getId(), doc.getId(), doc.getVersion()));
+        // 새 버전 발행은 keywords 를 갱신하지 않는다 — finalize 가 추출한 이전 키워드를 보존.
+        // listener 가 빈 List 를 받으면 keywords upsert 를 skip (embedding 만 갱신).
+        events.publishEvent(new IdeaVersionPublishedEvent(
+                idea.getId(), doc.getId(), doc.getVersion(), List.of()));
         return new PublishIdeaVersionResult(idea.getId(), doc.getId(), doc.getVersion());
     }
 }

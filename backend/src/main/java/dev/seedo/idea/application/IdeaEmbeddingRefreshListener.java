@@ -49,10 +49,13 @@ public class IdeaEmbeddingRefreshListener {
                             "document missing after commit: documentId=" + event.documentId()));
 
             float[] embedding = embeddingClient.embed(doc.getContentMd());
-            embeddingRepo.upsertEmbedding(event.ideaId(), embedding);
+            // keywords 가 비어있으면 upsert 가 embedding 만 갱신, 이전 키워드 보존.
+            // (PublishIdeaVersionService 는 keywords 재추출 안 하므로 빈 List 발행 — finalize 키워드 유지.)
+            embeddingRepo.upsertEmbedding(event.ideaId(), embedding, event.keywords());
 
-            log.info("idea embedding refreshed. ideaId={}, documentId={}, version={}, dim={}",
-                    event.ideaId(), event.documentId(), event.version(), embedding.length);
+            log.info("idea embedding refreshed. ideaId={}, documentId={}, version={}, dim={}, keywords={}",
+                    event.ideaId(), event.documentId(), event.version(),
+                    embedding.length, event.keywords().size());
         } catch (RuntimeException e) {
             // 부가 기능이므로 사용자 흐름은 영향 받지 않는다. 검색이 일시적으로 stale 해질 뿐.
             // 트래픽 / 정합성이 중요해지면 dead-letter 큐 + 재시도 잡 도입.
