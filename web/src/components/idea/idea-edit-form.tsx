@@ -78,7 +78,7 @@ export function IdeaEditForm({
     register,
     handleSubmit,
     watch,
-    formState: { isValid, isSubmitting },
+    formState: { errors, isValid, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     mode: "onChange",
@@ -126,6 +126,8 @@ export function IdeaEditForm({
             <button
               type="button"
               onClick={() => setPreview((v) => !v)}
+              aria-pressed={preview}
+              aria-controls="idea-content-preview"
               className="flex h-9 items-center justify-center rounded-md bg-[#e4e4e7] px-4 py-2 text-sm leading-[1.3] font-semibold tracking-[-0.35px] text-muted-foreground hover:bg-[#d4d4d8]"
             >
               {preview ? "편집으로" : "미리보기"}
@@ -164,8 +166,18 @@ export function IdeaEditForm({
             {...register("title")}
             type="text"
             placeholder="아이디어 제목"
-            className="h-10 w-full rounded-md border border-input bg-card p-3 text-sm leading-[1.5] tracking-[-0.35px] text-foreground placeholder:text-muted-foreground focus:outline-none"
+            aria-invalid={Boolean(errors.title)}
+            aria-describedby={errors.title ? "idea-title-error" : undefined}
+            className="h-10 w-full rounded-md border border-input bg-card p-3 text-sm leading-[1.5] tracking-[-0.35px] text-foreground placeholder:text-muted-foreground focus:outline-none aria-invalid:border-destructive"
           />
+          {errors.title ? (
+            <p
+              id="idea-title-error"
+              className="text-xs leading-[1.5] tracking-[-0.3px] text-destructive"
+            >
+              {errors.title.message}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-2">
@@ -189,9 +201,21 @@ export function IdeaEditForm({
               id="idea-content"
               {...register("contentMd")}
               placeholder="마크다운으로 본문을 작성하세요."
-              className="h-[400px] w-full resize-none rounded-md border border-input bg-card p-3 text-sm leading-[1.5] tracking-[-0.35px] text-foreground placeholder:text-muted-foreground focus:outline-none"
+              aria-invalid={Boolean(errors.contentMd)}
+              aria-describedby={
+                errors.contentMd ? "idea-content-error" : undefined
+              }
+              className="h-[400px] w-full resize-none rounded-md border border-input bg-card p-3 text-sm leading-[1.5] tracking-[-0.35px] text-foreground placeholder:text-muted-foreground focus:outline-none aria-invalid:border-destructive"
             />
           )}
+          {errors.contentMd ? (
+            <p
+              id="idea-content-error"
+              className="text-xs leading-[1.5] tracking-[-0.3px] text-destructive"
+            >
+              {errors.contentMd.message}
+            </p>
+          ) : null}
         </div>
       </form>
     </main>
