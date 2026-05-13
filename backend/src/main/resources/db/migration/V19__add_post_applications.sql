@@ -51,7 +51,8 @@ BEGIN
               AND p.deleted_at IS NULL
         ));
 
-    -- 본인 INSERT — applicant_id = auth.uid() 강제. post 가 PUBLISHED 상태일 때만.
+    -- 본인 INSERT — applicant_id = auth.uid() 강제. 모집 글(BETA/DEV) + PUBLISHED 한정.
+    -- 프론트가 같은 가드를 갖고 있지만 직접 호출 우회를 막기 위한 RLS 차원 방어.
     CREATE POLICY post_applications_self_insert ON public.post_applications
         FOR INSERT TO authenticated
         WITH CHECK (
@@ -60,6 +61,7 @@ BEGIN
                 SELECT 1 FROM public.posts p
                 WHERE p.id = post_applications.post_id
                   AND p.status = 'PUBLISHED'
+                  AND p.post_type IN ('BETA_RECRUIT', 'DEV_RECRUIT')
                   AND p.deleted_at IS NULL
             )
         );
