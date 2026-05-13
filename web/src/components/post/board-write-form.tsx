@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -11,6 +12,9 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
+import { useAuth } from "@/contexts/auth-context";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "@/lib/toast";
 
 const postTypeValues = POST_TYPES.map((t) => t.value) as [
   PostType,
@@ -26,6 +30,8 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export function BoardWriteForm() {
+  const router = useRouter();
+  const { user } = useAuth();
   const {
     register,
     handleSubmit,
@@ -42,12 +48,29 @@ export function BoardWriteForm() {
   const selectedLabel =
     POST_TYPES.find((t) => t.value === postType)?.label ?? "";
 
-  const handleDraft = () => {
-    // TODO: Spring API 연결 — DRAFT 저장 (검증 무관, 작성 중인 값 그대로)
-  };
-
-  const onPublish = (_values: FormValues) => {
-    // TODO: Spring API 연결 — 발행
+  const onPublish = async (values: FormValues) => {
+    if (!user) {
+      toast.error("로그인이 필요합니다");
+      return;
+    }
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("posts")
+      .insert({
+        author_id: user.id,
+        post_type: values.postType,
+        title: values.title.trim(),
+        body: values.body.trim(),
+      })
+      .select("id")
+      .single();
+    if (error || !data) {
+      toast.error("게시물 등록에 실패했습니다");
+      return;
+    }
+    toast.success("게시물을 등록했습니다");
+    router.push(`/board/${data.id}`);
+    router.refresh();
   };
 
   return (
@@ -57,22 +80,13 @@ export function BoardWriteForm() {
           <h1 className="text-2xl leading-[1.5] font-bold tracking-[-0.6px] text-foreground">
             게시물 게시하기?
           </h1>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleDraft}
-              className="flex h-9 items-center justify-center rounded-md bg-[#e4e4e7] px-4 py-2 text-sm leading-[1.3] font-semibold tracking-[-0.35px] text-muted-foreground hover:bg-[#d4d4d8]"
-            >
-              임시 저장
-            </button>
-            <button
-              type="submit"
-              disabled={!isValid || isSubmitting}
-              className="flex h-9 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm leading-[1.3] font-semibold tracking-[-0.35px] text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              게시하기
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={!isValid || isSubmitting}
+            className="flex h-9 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm leading-[1.3] font-semibold tracking-[-0.35px] text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            게시하기
+          </button>
         </header>
 
         <div className="mt-8 flex w-full flex-col gap-3">

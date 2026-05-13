@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 
-export type CommentTarget = "idea" | "project";
+export type CommentTarget = "idea" | "project" | "post";
 
 export type CommentItem = {
   id: number;
@@ -13,11 +13,19 @@ export type CommentItem = {
 };
 
 function tableFor(target: CommentTarget) {
-  return target === "idea" ? "idea_comments" : "project_comments";
+  return target === "idea"
+    ? "idea_comments"
+    : target === "project"
+      ? "project_comments"
+      : "post_comments";
 }
 
 function targetColFor(target: CommentTarget) {
-  return target === "idea" ? "idea_id" : "project_id";
+  return target === "idea"
+    ? "idea_id"
+    : target === "project"
+      ? "project_id"
+      : "post_id";
 }
 
 export async function fetchComments(
