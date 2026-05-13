@@ -4,6 +4,10 @@ import dev.seedo.common.web.ApiResponse;
 import dev.seedo.idea.application.IdeaNotFoundException;
 import dev.seedo.project.application.AdoptionRequiresPurchaseException;
 import dev.seedo.project.application.IdeaNotAdoptableException;
+import dev.seedo.project.application.ProjectLeaderOnlyException;
+import dev.seedo.project.application.ProjectNotEditableException;
+import dev.seedo.project.application.ProjectNotFoundException;
+import dev.seedo.project.application.ProjectPublishMissingFieldsException;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -26,14 +30,27 @@ import java.sql.SQLException;
 @ControllerAdvice(basePackages = "dev.seedo.project.web")
 public class ProjectExceptionHandler {
 
-    @ExceptionHandler(IdeaNotFoundException.class)
-    public ResponseEntity<ApiResponse<Void>> handleIdeaNotFound(IdeaNotFoundException e) {
+    @ExceptionHandler({IdeaNotFoundException.class, ProjectNotFoundException.class})
+    public ResponseEntity<ApiResponse<Void>> handleNotFound(RuntimeException e) {
         return error(HttpStatus.NOT_FOUND, e.getMessage());
     }
 
-    @ExceptionHandler({IdeaNotAdoptableException.class, AdoptionRequiresPurchaseException.class})
+    @ExceptionHandler({IdeaNotAdoptableException.class, AdoptionRequiresPurchaseException.class,
+            ProjectPublishMissingFieldsException.class})
     public ResponseEntity<ApiResponse<Void>> handleBadRequest(RuntimeException e) {
         return error(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    /** LEADER 외 사용자가 소개 수정·공개를 시도. RBAC 외부 리소스 소유권 검증. */
+    @ExceptionHandler(ProjectLeaderOnlyException.class)
+    public ResponseEntity<ApiResponse<Void>> handleForbidden(ProjectLeaderOnlyException e) {
+        return error(HttpStatus.FORBIDDEN, e.getMessage());
+    }
+
+    /** 편집 불가 상태 (COMPLETED / ARCHIVED / DELETED) 또는 publish DRAFT 가 아닐 때. */
+    @ExceptionHandler(ProjectNotEditableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleConflict(ProjectNotEditableException e) {
+        return error(HttpStatus.CONFLICT, e.getMessage());
     }
 
     /**
