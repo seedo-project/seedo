@@ -2,6 +2,7 @@ import { resolveDisplayName } from "@/lib/auth-display";
 import { createClient } from "@/lib/supabase/server";
 import { formatRelativeKo } from "@/lib/format";
 import type { Idea } from "@/components/idea/idea-card";
+import type { Post, PostType } from "@/components/post/post-card";
 import type { Project } from "@/components/project/project-card";
 import type { ChipVariant } from "@/components/project/chip-status";
 import type { ProfileMock } from "@/app/(main)/my-page/_components/profile-panel";
@@ -41,10 +42,20 @@ function snapshotPreview(md: string): string {
   return lines.slice(0, 3).join(" ").slice(0, 200);
 }
 
+function postPreview(body: string): string {
+  return body
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("\n");
+}
+
 export type MyPageQueryResult = {
   profile: ProfileMock;
   ideas: Idea[];
   projects: Project[];
+  posts: Post[];
 };
 
 export async function fetchMyPageData(): Promise<MyPageQueryResult | null> {
@@ -67,37 +78,47 @@ export async function fetchMyPageData(): Promise<MyPageQueryResult | null> {
     email: authUser.email ?? "",
   };
 
-  const [{ data: ideaRows }, { data: projectRows }, { data: ownProfile }] =
-    await Promise.all([
-      supabase
-        .from("ideas")
-        .select(
-          `id, price_credits, created_at,
+  const [
+    { data: ideaRows },
+    { data: projectRows },
+    { data: postRows },
+    { data: ownProfile },
+  ] = await Promise.all([
+    supabase
+      .from("ideas")
+      .select(
+        `id, price_credits, created_at,
          idea_embeddings ( keywords )`,
-        )
-        .eq("author_id", authUser.id)
-        .neq("status", "DELETED")
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("projects")
-        .select(
-          `id, status, idea_snapshot_md,
+      )
+      .eq("author_id", authUser.id)
+      .neq("status", "DELETED")
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("projects")
+      .select(
+        `id, status, idea_snapshot_md,
          ideas:ideas!projects_idea_id_fkey (
            current_version_id,
            idea_documents!ideas_current_version_id_fkey ( title )
          )`,
-        )
-        .eq("leader_id", authUser.id)
-        .neq("status", "DELETED")
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("public_profiles")
-        .select("nickname")
-        .eq("id", authUser.id)
-        .maybeSingle(),
-    ]);
+      )
+      .eq("leader_id", authUser.id)
+      .neq("status", "DELETED")
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("posts")
+      .select("id, post_type, title, body, created_at")
+      .eq("author_id", authUser.id)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("public_profiles")
+      .select("nickname")
+      .eq("id", authUser.id)
+      .maybeSingle(),
+  ]);
   const projectSubtitle = resolveDisplayName(
     profile.name,
     profile.email,
@@ -134,5 +155,14 @@ export async function fetchMyPageData(): Promise<MyPageQueryResult | null> {
     };
   });
 
-  return { profile, ideas, projects };
+  const posts: Post[] = (postRows ?? []).map((row) => ({
+    id: String(row.id),
+    postType: row.post_type as PostType,
+    title: row.title,
+    preview: postPreview(row.body),
+    timestamp: formatRelativeKo(row.created_at),
+    createdAt: row.created_at,
+  }));
+
+  return { profile, ideas, projects, posts };
 }
