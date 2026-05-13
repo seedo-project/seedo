@@ -1,10 +1,12 @@
 import { ChipStatus } from "@/components/project/chip-status";
 import { CommentSection } from "@/components/shared/comment-section";
 import { HypeButton } from "@/components/shared/hype-button";
+import { ProjectFollowButton } from "@/components/shared/project-follow-button";
 import { ProjectScrapButton } from "@/components/shared/project-scrap-button";
 import { fetchComments } from "@/lib/queries/comments";
 import { fetchHypeState } from "@/lib/queries/hype";
 import { fetchProjectDetail } from "@/lib/queries/project-detail";
+import { fetchProjectFollowState } from "@/lib/queries/project-follow";
 import { fetchProjectScrapState } from "@/lib/queries/project-scrap";
 
 export default async function ProjectDetailPage({
@@ -15,9 +17,10 @@ export default async function ProjectDetailPage({
   const { id } = await params;
   const project = await fetchProjectDetail(id);
   const projectIdNum = Number(project.id);
-  const [hype, scrap, comments] = await Promise.all([
+  const [hype, scrap, follow, comments] = await Promise.all([
     fetchHypeState("project", projectIdNum),
     fetchProjectScrapState(projectIdNum),
+    fetchProjectFollowState(projectIdNum),
     fetchComments("project", projectIdNum),
   ]);
 
@@ -31,8 +34,13 @@ export default async function ProjectDetailPage({
           />
           <div className="flex flex-1 flex-col items-end justify-between">
             <div className="flex w-full flex-col gap-1.5">
-              <div className="flex items-start gap-1.5">
+              <div className="flex items-start justify-between gap-1.5">
                 <ChipStatus variant={project.status} />
+                <ProjectFollowButton
+                  projectId={projectIdNum}
+                  initialCount={follow.count}
+                  initialFollowed={follow.followed}
+                />
               </div>
               <h1 className="text-2xl leading-[1.5] font-bold tracking-[-0.6px] text-foreground">
                 {project.title}
