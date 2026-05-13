@@ -29,15 +29,17 @@ export default function IdeaWritePage() {
     };
     setMessages((prev) => [...prev, userMsg]);
     setSending(true);
-
-    await new Promise((r) => setTimeout(r, 600));
-    const assistantMsg: ChatMessage = {
-      id: `a-${Date.now()}`,
-      role: "ASSISTANT",
-      content: MOCK_ASSISTANT_REPLY,
-    };
-    setMessages((prev) => [...prev, assistantMsg]);
-    setSending(false);
+    try {
+      await new Promise((r) => setTimeout(r, 600));
+      const assistantMsg: ChatMessage = {
+        id: `a-${Date.now()}`,
+        role: "ASSISTANT",
+        content: MOCK_ASSISTANT_REPLY,
+      };
+      setMessages((prev) => [...prev, assistantMsg]);
+    } finally {
+      setSending(false);
+    }
   };
 
   if (messages.length === 0) {
