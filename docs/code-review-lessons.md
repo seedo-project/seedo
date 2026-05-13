@@ -478,6 +478,43 @@ CREATE UNIQUE INDEX credit_tx_reference_uniq
 
 ---
 
+### C.5 마이그레이션 `IF NOT EXISTS` 가드는 conrelid + contype 까지 한정 — ✅
+
+**출처**: PR #132 (CodeRabbit)
+
+**지적**: Postgres 에서 같은 이름의 constraint 가 다른 테이블에 존재할 수 있다 (constraint name 은 schema 단위 unique 가 아님 — `conname` 만 UNIQUE 인 게 아니라 `(conname, conrelid)` 조합이 unique). 마이그레이션 가드가 `WHERE conname = 'X'` 만 검사하면 이미 다른 테이블에 같은 이름 constraint 가 있을 때 우리 테이블엔 추가 안 되고 무결성이 누락된다.
+
+**전**:
+```sql
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'users_gender_check'
+    ) THEN
+        ALTER TABLE public.users ADD CONSTRAINT users_gender_check ...;
+    END IF;
+END $$;
+```
+
+**후**:
+```sql
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'users_gender_check'
+          AND conrelid = 'public.users'::regclass  -- 우리 테이블만
+          AND contype = 'c'                          -- CHECK 만 (FK / UNIQUE 와 충돌 회피)
+    ) THEN
+        ALTER TABLE public.users ADD CONSTRAINT users_gender_check ...;
+    END IF;
+END $$;
+```
+
+**교훈**: PG 마이그레이션의 멱등성 가드 (`IF NOT EXISTS` 류) 는 항상 **소속 객체 + 종류** 까지 한정. constraint 면 `conrelid + contype`, 인덱스면 `tablename + indexname` (`pg_indexes` 사용), 트리거면 `tgrelid + tgname`. constraint name 이름만 의지하면 동명 충돌 시 silent skip 되어 무결성 사고로 이어진다.
+
+---
+
 ## D. 에러 핸들링 / HTTP 매핑
 
 ### D.1 `@ExceptionHandler` 에 `@ResponseStatus` 조합 금지 — ✅
@@ -1016,3 +1053,4 @@ PR 별로 어떤 항목이 나왔는지 — 디버깅 / 머지 후 추적용.
 | #114 | 아이디어 자연어 검색 API | A.6 |
 | #126 | 챗봇 대화 BE — gpt-4o-mini 동기 응답 | A.7, F.5 (재발) |
 | #128 | finalize LLM 자동 작성 | A.7 (스냅샷 race 보강) |
+| #132 | 사용자 프로필 보강 (V9~V11) | C.5 |
