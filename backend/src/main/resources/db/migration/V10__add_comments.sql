@@ -58,13 +58,30 @@ BEGIN
     ALTER TABLE public.idea_comments    ENABLE ROW LEVEL SECURITY;
     ALTER TABLE public.project_comments ENABLE ROW LEVEL SECURITY;
 
-    -- 공개 SELECT — 삭제되지 않은 댓글만.
+    -- 공개 SELECT — 삭제되지 않은 댓글 + 부모(idea/project) 가 공개 상태일 때만.
+    -- 부모가 DRAFT/DELETED/ARCHIVED 면 본문이 막혀 있으므로 댓글도 같이 숨긴다 (§6.4 일관성).
     CREATE POLICY idea_comments_public_select ON public.idea_comments
         FOR SELECT TO public
-        USING (deleted_at IS NULL);
+        USING (
+            deleted_at IS NULL
+            AND EXISTS (
+                SELECT 1 FROM public.ideas i
+                WHERE i.id = idea_comments.idea_id
+                  AND i.status = 'PUBLISHED'
+                  AND i.deleted_at IS NULL
+            )
+        );
     CREATE POLICY project_comments_public_select ON public.project_comments
         FOR SELECT TO public
-        USING (deleted_at IS NULL);
+        USING (
+            deleted_at IS NULL
+            AND EXISTS (
+                SELECT 1 FROM public.projects p
+                WHERE p.id = project_comments.project_id
+                  AND p.status <> 'DELETED'
+                  AND p.deleted_at IS NULL
+            )
+        );
 
     -- 본인 작성 INSERT.
     CREATE POLICY idea_comments_author_insert ON public.idea_comments
