@@ -1,4 +1,8 @@
 import { AdoptButton } from "@/components/idea/adopt-button";
+import { CommentSection } from "@/components/shared/comment-section";
+import { HypeButton } from "@/components/shared/hype-button";
+import { fetchComments } from "@/lib/queries/comments";
+import { fetchHypeState } from "@/lib/queries/hype";
 import { fetchIdeaDetail } from "@/lib/queries/idea-detail";
 
 export default async function IdeaDetailPage({
@@ -9,6 +13,11 @@ export default async function IdeaDetailPage({
   const { id } = await params;
   const idea = await fetchIdeaDetail(id);
   const canAdopt = idea.isAuthor || idea.isPurchased;
+  const ideaIdNum = Number(idea.id);
+  const [hype, comments] = await Promise.all([
+    fetchHypeState("idea", ideaIdNum),
+    fetchComments("idea", ideaIdNum),
+  ]);
 
   return (
     <main className="mx-auto w-[820px] pt-8 pb-16">
@@ -18,11 +27,18 @@ export default async function IdeaDetailPage({
             <h1 className="text-2xl leading-[1.5] font-bold tracking-[-0.6px] text-foreground">
               {idea.title}
             </h1>
-            <AdoptButton
-              ideaId={idea.id}
-              canAdopt={canAdopt}
-              rewardCredits={idea.rewardCredits}
-            />
+            <div className="flex items-center gap-2">
+              <HypeButton
+                target={{ kind: "idea", id: ideaIdNum }}
+                initialCount={hype.count}
+                initialHyped={hype.hyped}
+              />
+              <AdoptButton
+                ideaId={idea.id}
+                canAdopt={canAdopt}
+                rewardCredits={idea.rewardCredits}
+              />
+            </div>
           </div>
           <div className="flex items-center gap-2 text-sm leading-[1.5] font-medium tracking-[-0.35px] text-muted-foreground">
             <span>{idea.authorName}</span>
@@ -31,9 +47,15 @@ export default async function IdeaDetailPage({
           </div>
         </header>
 
-        <article className="h-[776px] overflow-y-auto rounded-md border border-border p-4 text-base leading-[1.5] tracking-[-0.4px] whitespace-pre-line text-muted-foreground">
+        <article className="h-[520px] overflow-y-auto rounded-md border border-border p-4 text-base leading-[1.5] tracking-[-0.4px] whitespace-pre-line text-muted-foreground">
           {idea.body}
         </article>
+
+        <CommentSection
+          target="idea"
+          targetId={ideaIdNum}
+          initialComments={comments}
+        />
       </div>
     </main>
   );
