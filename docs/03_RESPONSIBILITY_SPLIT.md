@@ -209,3 +209,9 @@ Spring API는 별도 도메인(예: `api.seedo.dev`)에 두거나, Next.js의 `/
 17. 알림 (DB 트리거 + Realtime)
 18. 관리자 대시보드 (Spring)
 19. 모니터링, 로깅, 배포
+
+---
+
+## 현재 진행 상태
+
+이 문서는 **설계 원칙** 이다. **실제로 머지된 것** 의 한 눈 정리는 [`07_IMPLEMENTATION_STATUS.md`](./07_IMPLEMENTATION_STATUS.md) 참조 — Flyway V1~V18, 컨트롤러 / 서비스 / 어댑터 목록, RLS 정책, view, PR 인덱스, 미구현·보류 항목 모두 거기 있다.
