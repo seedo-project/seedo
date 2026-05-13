@@ -53,6 +53,10 @@ function showHttpError(err: unknown, fallback: string) {
       toast.error("아이디어를 찾을 수 없습니다");
       return;
     }
+    if (err.status >= 500) {
+      toast.error(fallback);
+      return;
+    }
     toast.error(err.message);
     return;
   }

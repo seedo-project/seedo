@@ -112,6 +112,10 @@ function showHttpError(err: unknown, fallback: string) {
       toast.error(err.message);
       return;
     }
+    if (err.status >= 500) {
+      toast.error(fallback);
+      return;
+    }
     toast.error(err.message);
     return;
   }

@@ -19,14 +19,13 @@ export async function GET(req: Request) {
   const rawLimit = searchParams.get("limit");
   let limitParam = "";
   if (rawLimit !== null) {
-    const n = Number(rawLimit);
-    if (!Number.isInteger(n) || n < 1) {
+    if (!/^[1-9]\d*$/.test(rawLimit)) {
       return NextResponse.json(
         { status: "ERROR", message: "limit 은 양의 정수여야 합니다", data: null },
         { status: 400 },
       );
     }
-    limitParam = `&limit=${n}`;
+    limitParam = `&limit=${rawLimit}`;
   }
   const path = `/api/v1/ideas/search?q=${encodeURIComponent(q)}${limitParam}`;
 
