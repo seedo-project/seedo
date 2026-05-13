@@ -91,13 +91,21 @@ public class FinalizeChatSessionService {
                 .toList();
         IdeaDocumentDraft draft = chatClient.synthesizeIdeaDocument(turns);
 
-        // 3. INSERT 트랜잭션 — 세션 락 + 상태 재검증 + idea/document INSERT + 세션 FINALIZED.
+        long historySnapshotSize = history.size();
+
+        // 3. INSERT 트랜잭션 — 세션 락 + 상태 재검증 + history 변경 가드 + idea/document INSERT + 세션 FINALIZED.
         return tx.execute(status -> {
             IdeaChatSession locked = sessionRepo.findByIdForUpdate(cmd.sessionId())
                     .orElseThrow(() -> new ChatSessionNotFoundException(cmd.sessionId()));
             if (locked.getStatus() != ChatSessionStatus.IN_PROGRESS) {
                 // LLM 호출 동안 다른 트랜잭션이 finalize / abandon 한 race — LLM 응답은 버려짐.
                 throw new ChatSessionNotFinalizableException(cmd.sessionId(), locked.getStatus());
+            }
+            // LLM 호출 동안 새 메시지가 끼어들면 LLM draft 가 최신 대화를 반영 못 한다 — 명시적으로 거부해
+            // 클라이언트가 새 history 로 다시 finalize 호출하게 한다 (메시지는 append-only 라 size 비교로 충분).
+            long currentHistorySize = messageRepo.countBySessionId(cmd.sessionId());
+            if (currentHistorySize != historySnapshotSize) {
+                throw new ChatHistoryChangedException(cmd.sessionId(), historySnapshotSize, currentHistorySize);
             }
 
             Idea idea = ideaRepo.saveAndFlush(

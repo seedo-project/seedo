@@ -132,18 +132,20 @@ public class OpenAiChatAdapter implements ChatClient {
     }
 
     private IdeaDocumentDraft parseDraft(String json) {
+        // 예외 메시지에는 LLM 원문(json)을 절대 포함하지 않는다 — 사용자 대화 유래 텍스트가 운영 로그 /
+        // 클라이언트 응답 본문(ApiResponse.error)으로 노출될 수 있다. 디버깅이 필요하면 응답 길이만 남긴다.
         JsonNode node;
         try {
             node = objectMapper.readTree(json);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException(
-                    "OpenAI synthesize response was not valid JSON: " + abbreviate(json), e);
+                    "OpenAI synthesize response was not valid JSON (length=" + json.length() + ")", e);
         }
         String title = textOrNull(node.get("title"));
         String contentMd = textOrNull(node.get("contentMd"));
         if (title == null || title.isBlank() || contentMd == null || contentMd.isBlank()) {
             throw new IllegalStateException(
-                    "OpenAI synthesize response missing title/contentMd: " + abbreviate(json));
+                    "OpenAI synthesize response missing title/contentMd (length=" + json.length() + ")");
         }
         // 모델이 가끔 길이 초과를 만든다 — DB CHECK 도달 전 잘라낸다 (V2 idea_documents.title varchar(200)).
         if (title.length() > 200) {
@@ -154,9 +156,5 @@ public class OpenAiChatAdapter implements ChatClient {
 
     private static String textOrNull(JsonNode node) {
         return node == null || node.isNull() ? null : node.asText();
-    }
-
-    private static String abbreviate(String s) {
-        return s.length() <= 200 ? s : s.substring(0, 200) + "...";
     }
 }
