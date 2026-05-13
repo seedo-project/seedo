@@ -2,6 +2,42 @@ import { createClient } from "@/lib/supabase/server";
 import type { Project } from "@/components/project/project-card";
 import type { ChipVariant } from "@/components/project/chip-status";
 
+export type DraftProject = {
+  id: string;
+  coverImageUrl: string | null;
+  title: string;
+  description: string;
+  guideMd: string;
+};
+
+/** 본인의 가장 최근 DRAFT 프로젝트 1건. 아이디어 채택 (§8.3) 으로만 생성되므로 없는 게 정상. */
+export async function fetchLatestDraftProject(): Promise<DraftProject | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data } = await supabase
+    .from("projects")
+    .select("id, cover_image_url, title, description, guide_md")
+    .eq("leader_id", user.id)
+    .eq("status", "DRAFT")
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) return null;
+  return {
+    id: String(data.id),
+    coverImageUrl: data.cover_image_url ?? null,
+    title: data.title ?? "",
+    description: data.description ?? "",
+    guideMd: data.guide_md ?? "",
+  };
+}
+
 function statusToChips(status: string): ChipVariant[] {
   switch (status) {
     case "IN_PROGRESS":
