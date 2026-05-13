@@ -7,6 +7,8 @@ import dev.seedo.idea.application.FinalizeChatSessionService;
 import dev.seedo.idea.application.SendChatMessageCommand;
 import dev.seedo.idea.application.SendChatMessageResult;
 import dev.seedo.idea.application.SendChatMessageService;
+import dev.seedo.idea.application.StartChatSessionResult;
+import dev.seedo.idea.application.StartChatSessionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -14,12 +16,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
@@ -38,11 +42,39 @@ public class ChatSessionController {
 
     private final FinalizeChatSessionService finalizeService;
     private final SendChatMessageService sendService;
+    private final StartChatSessionService startService;
 
     public ChatSessionController(FinalizeChatSessionService finalizeService,
-                                 SendChatMessageService sendService) {
+                                 SendChatMessageService sendService,
+                                 StartChatSessionService startService) {
         this.finalizeService = finalizeService;
         this.sendService = sendService;
+        this.startService = startService;
+    }
+
+    @PostMapping(consumes = MediaType.ALL_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAuthority('PERM_IDEA_CREATE')")
+    @Operation(
+            summary = "새 챗봇 세션 시작",
+            description = """
+                    아이디어 작성을 위한 챗봇 대화 세션을 만든다. 사용자가 챗봇 화면 (Figma S202) 의 첫 메시지를
+                    보내기 전 호출해 sessionId 를 받고, 이후 메시지/finalize 요청을 그 sessionId 로 라우팅한다.
+
+                    - 요청 본문 없음.
+                    - 같은 사용자가 여러 세션을 동시에 가져도 OK (현 스키마에 unique 제약 없음). 사용자가 여러
+                      아이디어를 병렬로 brainstorm 가능하게.
+                    - 빈 세션으로 finalize 호출하면 400 으로 거부됨 — 잘못 만들어둔 세션이 idea 까지 가지 않음.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "세션 생성 성공. sessionId / createdAt 반환."),
+            @ApiResponse(responseCode = "401", description = "JWT 누락 또는 만료", content = @Content),
+            @ApiResponse(responseCode = "403", description = "PERM_IDEA_CREATE 권한 없음", content = @Content)
+    })
+    public StartChatSessionResponse start(@CurrentUserId UUID userId) {
+        StartChatSessionResult result = startService.start(userId);
+        return new StartChatSessionResponse(result.sessionId(), result.createdAt());
     }
 
     @PostMapping("/{id}/messages")
