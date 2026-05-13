@@ -2,6 +2,7 @@ import { CommentSection } from "@/components/shared/comment-section";
 import { POST_TYPES } from "@/components/post/post-card";
 import { PostApplyCta } from "@/components/post/post-apply-cta";
 import { fetchComments } from "@/lib/queries/comments";
+import { fetchPostApplicationState } from "@/lib/queries/post-application";
 import { fetchPostDetail } from "@/lib/queries/posts";
 
 export default async function BoardDetailPage({
@@ -12,12 +13,17 @@ export default async function BoardDetailPage({
   const { id } = await params;
   const post = await fetchPostDetail(id);
   const postIdNum = Number(post.id);
-  const comments = await fetchComments("post", postIdNum);
+  const showApply =
+    post.postType === "BETA_RECRUIT" || post.postType === "DEV_RECRUIT";
+  const [comments, application] = await Promise.all([
+    fetchComments("post", postIdNum),
+    showApply
+      ? fetchPostApplicationState(postIdNum)
+      : Promise.resolve({ applied: false }),
+  ]);
 
   const typeLabel =
     POST_TYPES.find((t) => t.value === post.postType)?.label ?? post.postType;
-  const showApply =
-    post.postType === "BETA_RECRUIT" || post.postType === "DEV_RECRUIT";
 
   return (
     <main className="mx-auto w-[820px] pt-8 pb-16">
@@ -28,7 +34,11 @@ export default async function BoardDetailPage({
               {typeLabel}
             </p>
             {showApply ? (
-              <PostApplyCta postType={post.postType} postId={post.id} />
+              <PostApplyCta
+                postType={post.postType}
+                postId={post.id}
+                initialApplied={application.applied}
+              />
             ) : null}
           </div>
           <h1 className="text-2xl leading-[1.5] font-bold tracking-[-0.6px] text-foreground">
