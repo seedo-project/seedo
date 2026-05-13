@@ -1,6 +1,7 @@
 package dev.seedo.support;
 
 import dev.seedo.idea.application.port.out.ChatClient;
+import dev.seedo.idea.application.port.out.ChatClient.IdeaDocumentDraft;
 import dev.seedo.idea.application.port.out.EmbeddingClient;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -23,9 +24,19 @@ public class IntegrationTestStubsConfig {
         return text -> new float[1536];
     }
 
-    /** 결정적 stub — 마지막 USER 메시지를 그대로 echo. 특정 IT 가 더 정교한 응답이 필요하면 mock 으로 override. */
+    /** 결정적 stub — 챗봇 호출은 고정 응답, finalize 합성은 고정 draft. 정교한 검증이 필요하면 mock 으로 override. */
     @Bean
     public ChatClient stubChatClient() {
-        return turns -> "stub assistant reply";
+        return new ChatClient() {
+            @Override
+            public String complete(java.util.List<ChatTurn> turns) {
+                return "stub assistant reply";
+            }
+
+            @Override
+            public IdeaDocumentDraft synthesizeIdeaDocument(java.util.List<ChatTurn> turns) {
+                return new IdeaDocumentDraft("stub title", "stub content markdown");
+            }
+        };
     }
 }
