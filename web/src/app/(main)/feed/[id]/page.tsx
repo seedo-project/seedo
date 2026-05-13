@@ -1,7 +1,9 @@
 import { Bookmark } from "lucide-react";
 
 import { ChipStatus } from "@/components/project/chip-status";
+import { CommentSection } from "@/components/shared/comment-section";
 import { HypeButton } from "@/components/shared/hype-button";
+import { fetchComments } from "@/lib/queries/comments";
 import { fetchHypeState } from "@/lib/queries/hype";
 import { fetchProjectDetail } from "@/lib/queries/project-detail";
 
@@ -13,7 +15,10 @@ export default async function ProjectDetailPage({
   const { id } = await params;
   const project = await fetchProjectDetail(id);
   const projectIdNum = Number(project.id);
-  const hype = await fetchHypeState("project", projectIdNum);
+  const [hype, comments] = await Promise.all([
+    fetchHypeState("project", projectIdNum),
+    fetchComments("project", projectIdNum),
+  ]);
 
   return (
     <main className="mx-auto w-[820px] pt-8 pb-16">
@@ -65,6 +70,12 @@ export default async function ProjectDetailPage({
         <article className="h-[520px] overflow-y-auto rounded-md border border-border p-4 text-base leading-[1.5] tracking-[-0.4px] whitespace-pre-line text-muted-foreground">
           {project.body}
         </article>
+
+        <CommentSection
+          target="project"
+          targetId={projectIdNum}
+          initialComments={comments}
+        />
       </div>
     </main>
   );
