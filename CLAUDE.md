@@ -278,7 +278,7 @@ OPENAI_API_KEY
 
 ## 14. 진행 상태 (자주 stale — 시작점만)
 
-- **현재**: 도메인/ERD 설계 완료 (`docs/`), `backend/` Flyway V1~V15 + 4 레이어 도메인 코드 + invariant IT. 핵심 이코노미·검색·게시판 흐름 모두 진행됨 — Supabase JWT 인증/RBAC (#64~#66), `ChargeCreditService` + 아이디어 구매 (§8.2), 챗봇 finalize / 새 버전 (§8.4, #79), 아이디어 채택 → 프로젝트 + 보상 (§8.3, #81), 임베딩 실제 계산 (#83), PG webhook 멱등성 충전 (§8.1 — `PaymentWebhookController` + X-Webhook-Secret), 사용자 프로필 보강 (#131), finalize 키워드 자동 추출 (#133), 아이디어/프로젝트 댓글 (#136), 게시판 글 작성/목록/상세 + post_comments (V14, #137), **하이브리드 검색 — 키워드+임베딩 RRF (#138/#139)**, **프로젝트 소개 페이지 작성 + 공개 + 스크랩 (V15, #140)** 까지. `web/`는 디자인 페이지들이 main 에 진입.
+- **현재**: 도메인/ERD 설계 완료 (`docs/`), `backend/` Flyway V1~V16 + 4 레이어 도메인 코드 + invariant IT. 핵심 이코노미·검색·게시판 흐름 모두 진행됨 — Supabase JWT 인증/RBAC (#64~#66), `ChargeCreditService` + 아이디어 구매 (§8.2), 챗봇 finalize / 새 버전 (§8.4, #79), 아이디어 채택 → 프로젝트 + 보상 (§8.3, #81), 임베딩 실제 계산 (#83), PG webhook 멱등성 충전 (§8.1 — `PaymentWebhookController` + X-Webhook-Secret), 사용자 프로필 보강 (#131), finalize 키워드 자동 추출 (#133), 아이디어/프로젝트 댓글 (#136), 게시판 글 작성/목록/상세 + post_comments (V14, #137), 하이브리드 검색 — 키워드+임베딩 RRF (#138/#139), 프로젝트 소개 페이지 작성 + 공개 + 스크랩 (V15, #140), **hypes/scraps RLS owner-only + 카운트 view 분리 (V16, #142)** 까지. `web/`는 디자인 페이지들이 main 에 진입.
 - 다음 작업: 알림 (notifications — 채택·보상·댓글·신청 발화 지점) → finalize 측 keywords lower-case 정규화 (#138 follow-up) → 게시판 신청 흐름 (`post_applications`) → PortOne 실연동 + HMAC 시그니처 (MVP 이후) → 관리자/배포.
 - 전체 순서: 인프라/인증 → 크레딧/아이디어 → 프로젝트/보상 → 게시판/인터랙션 → 알림/관리자/배포
 
