@@ -67,14 +67,14 @@ export function IdeaCardTags({ tags }: { tags: string[] }) {
         aria-hidden
         className="pointer-events-none invisible absolute top-0 left-0 flex flex-wrap gap-x-2 gap-y-2.5"
       >
-        {tags.map((t) => (
-          <ChipIdea key={t} label={t} />
+        {tags.map((t, i) => (
+          <ChipIdea key={`${t}-${i}`} label={t} />
         ))}
         <ChipIdea label={ELLIPSIS} />
       </div>
       <div className="flex w-full flex-wrap gap-x-2 gap-y-2.5">
-        {tags.slice(0, state.count).map((t) => (
-          <ChipIdea key={t} label={t} />
+        {tags.slice(0, state.count).map((t, i) => (
+          <ChipIdea key={`${t}-${i}`} label={t} />
         ))}
         {state.ellipsis && <ChipIdea label={ELLIPSIS} />}
       </div>
