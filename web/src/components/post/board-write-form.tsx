@@ -115,7 +115,7 @@ export function BoardWriteForm() {
               control={control}
               name="postType"
               render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select value={field.value ?? ""} onValueChange={field.onChange}>
                   <SelectTrigger
                     aria-label="게시판 선택"
                     className="h-10 w-[190px] rounded-md border border-input bg-card px-3 text-sm leading-[1.5] tracking-[-0.35px] text-muted-foreground"
