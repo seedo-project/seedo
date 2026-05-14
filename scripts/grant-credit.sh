@@ -37,6 +37,12 @@ EOF
     exit 1
 fi
 
+# amount 사전 검증 — jq --argjson 이 숫자 외 입력에 파싱 오류로 죽기 전에 명확히 안내 (CodeRabbit #182).
+if ! [[ "$AMOUNT" =~ ^[0-9]+$ ]] || (( AMOUNT <= 0 )); then
+    echo "❌ amount 는 0 보다 큰 정수여야 합니다: $AMOUNT" >&2
+    exit 1
+fi
+
 EMAIL="${SEEDO_ADMIN_EMAIL:-yaung.jin.mo@gmail.com}"
 API_BASE="${SEEDO_API_BASE:-http://localhost:8080}"
 SUPABASE_URL="${SEEDO_SUPABASE_URL:-https://lkwwfwgieffwoeqiliqa.supabase.co}"
@@ -48,12 +54,18 @@ if [[ -z "${SEEDO_ADMIN_PASSWORD:-}" ]]; then
     echo
 fi
 
+# curl 공통 옵션: connect 10s, 전체 30s 한계 — 무한 블로킹 방지 (CodeRabbit #182).
+CURL_OPTS=(--silent --show-error --connect-timeout 10 --max-time 30)
+
 # 1. Supabase Auth 로그인 → JWT 발급
-LOGIN_BODY=$(jq -n --arg e "$EMAIL" --arg p "$SEEDO_ADMIN_PASSWORD" '{email:$e, password:$p}')
-JWT=$(curl -sX POST "${SUPABASE_URL}/auth/v1/token?grant_type=password" \
-    -H "apikey: ${SUPABASE_ANON_KEY}" \
-    -H "Content-Type: application/json" \
-    -d "$LOGIN_BODY" \
+# 비밀번호를 jq/curl 인자에 안 노출하기 위해 stdin 경유 (CodeRabbit #182).
+# - jq: 비밀번호는 here-string 으로 stdin 입력 → `input` 으로 읽음. --arg 사용 X
+# - curl: --data-binary @- 로 stdin 입력 → -d "<password 포함된 변수>" 사용 X
+JWT=$(jq -nR --arg e "$EMAIL" '{email:$e, password:input}' <<< "$SEEDO_ADMIN_PASSWORD" \
+    | curl "${CURL_OPTS[@]}" -X POST "${SUPABASE_URL}/auth/v1/token?grant_type=password" \
+        -H "apikey: ${SUPABASE_ANON_KEY}" \
+        -H "Content-Type: application/json" \
+        --data-binary @- \
     | jq -r '.access_token // empty')
 
 if [[ -z "$JWT" ]]; then
@@ -61,11 +73,11 @@ if [[ -z "$JWT" ]]; then
     exit 1
 fi
 
-# 2. Spring API 호출
+# 2. Spring API 호출 — grant body 는 비밀번호 없어 단순 변수로 OK.
 GRANT_BODY=$(jq -n --arg u "$USER_ID" --argjson a "$AMOUNT" --arg r "$REASON" \
     '{userId:$u, amount:$a, reason:$r}')
 
-RESPONSE=$(curl -sX POST "${API_BASE}/api/v1/admin/credit/grant" \
+RESPONSE=$(curl "${CURL_OPTS[@]}" -X POST "${API_BASE}/api/v1/admin/credit/grant" \
     -H "Authorization: Bearer ${JWT}" \
     -H "Content-Type: application/json" \
     -d "$GRANT_BODY" \
@@ -74,12 +86,17 @@ RESPONSE=$(curl -sX POST "${API_BASE}/api/v1/admin/credit/grant" \
 HTTP_CODE=$(echo "$RESPONSE" | tail -1 | sed 's/__HTTP_CODE__://')
 BODY=$(echo "$RESPONSE" | sed '$d')
 
+# jq 가 비-JSON 응답에서 실패해도 set -e 로 죽지 않게 fallback (CodeRabbit #182).
+print_body() {
+    echo "$BODY" | jq . 2>/dev/null || echo "$BODY"
+}
+
 if [[ "$HTTP_CODE" == "200" ]]; then
     echo "✅ 적립 성공:"
-    echo "$BODY" | jq
+    print_body
 else
     echo "❌ 실패 (HTTP $HTTP_CODE):" >&2
-    echo "$BODY" | jq 2>/dev/null || echo "$BODY"
+    print_body >&2
     if [[ "$HTTP_CODE" == "403" ]]; then
         echo "" >&2
         echo "→ ADMIN role 부여 안 됐을 수 있습니다. Supabase SQL Editor 에서:" >&2
