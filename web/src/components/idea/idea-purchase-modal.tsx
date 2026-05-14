@@ -80,8 +80,8 @@ export function IdeaPurchaseModal({
 
         {idea && (
           <div className="flex w-[400px] max-w-full flex-wrap gap-x-2 gap-y-2.5 rounded-md border border-border p-4">
-            {idea.tags.map((t) => (
-              <ChipIdea key={t} label={t} />
+            {idea.tags.map((t, i) => (
+              <ChipIdea key={`${t}-${i}`} label={t} />
             ))}
           </div>
         )}
