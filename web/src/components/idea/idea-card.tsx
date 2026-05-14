@@ -1,7 +1,9 @@
+"use client";
+
 import type { KeyboardEvent } from "react";
 import { Check } from "lucide-react";
 
-import { ChipIdea } from "./chip-idea";
+import { IdeaCardTags } from "./idea-card-tags";
 import { ClockIcon, CoinIcon } from "./idea-icons";
 
 export type IdeaVariant = "default" | "purchased";
@@ -79,11 +81,7 @@ export function IdeaCard({
       {...interactive}
       className={`flex h-40 w-full flex-col justify-between rounded-xl border border-border bg-card px-5 py-4 ${interactive.className}`}
     >
-      <div className="flex w-full flex-wrap gap-x-2 gap-y-2.5">
-        {idea.tags.map((t) => (
-          <ChipIdea key={t} label={t} />
-        ))}
-      </div>
+      <IdeaCardTags tags={idea.tags} />
       <div className="flex items-end gap-2 self-end text-muted-foreground">
         {idea.postedAt ? (
           <span className="flex items-end">
