@@ -1,0 +1,37 @@
+name: backend-deploy
+
+# main 에 backend 변경이 머지될 때마다 Fly.io 에 자동 배포.
+# CI 의 backend-test 가 같은 push 에서 통과해야 안전 — concurrency 로 중복 배포 차단.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-deploy.yml'
+
+concurrency:
+  group: backend-deploy
+  cancel-in-progress: false   # 진행 중 deploy 는 끝까지 — 중간에 끊으면 부분 적용 위험
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up flyctl
+        # 외부 액션은 불변 SHA 로 핀 — @master / @v1 같은 movable ref 는 공급망 공격 노출 (CodeRabbit #198).
+        # v1.6 의 commit. 새 버전 업데이트 시 Dependabot 또는 수동 갱신.
+        uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1
+
+      - name: Deploy to Fly.io
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
