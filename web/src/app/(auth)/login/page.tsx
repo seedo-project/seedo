@@ -1,11 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { ComponentType, SVGProps } from "react";
+import { Suspense, type ComponentType, type SVGProps } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { SiNaver } from "react-icons/si";
 
 import { LoginForm } from "@/components/auth/login-form";
 import { AppleIcon, KakaoIcon } from "@/components/auth/social-icons";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type SocialLogin = {
   name: string;
@@ -46,6 +47,20 @@ const SOCIAL_LOGINS: SocialLogin[] = [
   },
 ];
 
+function LoginFormFallback() {
+  return (
+    <div className="w-[400px]">
+      <div className="flex gap-3">
+        <div className="flex flex-1 flex-col gap-3">
+          <Skeleton className="h-12 rounded-md" />
+          <Skeleton className="h-12 rounded-md" />
+        </div>
+        <Skeleton className="h-auto w-[104px] self-stretch rounded-md" />
+      </div>
+    </div>
+  );
+}
+
 export default function LoginPage() {
   return (
     <main className="flex min-h-svh flex-col items-center pt-[180px]">
@@ -63,7 +78,9 @@ export default function LoginPage() {
       />
 
       <div className="mt-16">
-        <LoginForm />
+        <Suspense fallback={<LoginFormFallback />}>
+          <LoginForm />
+        </Suspense>
       </div>
 
       <div className="mt-8 h-px w-[400px] bg-border" />
