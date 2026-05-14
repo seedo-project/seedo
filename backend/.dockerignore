@@ -1,0 +1,21 @@
+# Build artifacts — Docker 안에서 새로 빌드.
+build/
+.gradle/
+
+# IDE / 로컬 도구
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Secrets / 로컬 env — 절대 이미지에 들어가면 안 됨 (`flyctl secrets set` 으로만).
+.env
+.env.local
+.env.*.local
+
+# Git
+.git/
+.gitignore
+
+# Test 소스 — bootJar 와 무관, 빌드 context 절약.
+src/test/
