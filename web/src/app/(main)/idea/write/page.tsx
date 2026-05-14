@@ -122,7 +122,7 @@ export default function IdeaWritePage() {
       <div className="flex flex-col items-center px-[100px] pb-40 pt-6">
         <MessageList messages={messages} />
       </div>
-      <div className="sticky bottom-8 flex justify-center pointer-events-none">
+      <div className="sticky bottom-9 flex justify-center pointer-events-none">
         <div className="pointer-events-auto">
           <ChatComposer
             onSend={send}
