@@ -52,6 +52,9 @@ export async function fetchIdeaFeed(): Promise<Idea[]> {
   return data.map((row): Idea => {
     const id = String(row.id);
     const purchased = purchasedSet.has(row.id);
+    // 작성자 본인도 본문 열람 권한 보유 — V6 의 ideas_author_select / idea_documents_buyer_or_author_select
+    // RLS 와 같은 사상. 피드에서도 구매한 카드와 동일하게 본문 미리보기 + 클릭 시 상세 페이지로 (#183).
+    const isAuthor = userId !== null && row.author_id === userId;
     const doc = Array.isArray(row.idea_documents)
       ? row.idea_documents[0]
       : row.idea_documents;
@@ -59,12 +62,14 @@ export async function fetchIdeaFeed(): Promise<Idea[]> {
       ? row.idea_embeddings[0]
       : row.idea_embeddings;
 
-    if (purchased && doc) {
+    if ((purchased || isAuthor) && doc) {
       return {
         id,
         variant: "purchased",
         title: doc.title,
         description: previewFromMarkdown(doc.content_md ?? ""),
+        // purchasedByMe 의미를 \"본문 열람 권한 있음\" 으로 확장 — 작성자도 true. UI 의 \"내 카드\" vs \"내가 산 카드\"
+        // 구분이 필요해지면 별도 ownedByMe 플래그 도입을 후속으로 고려.
         purchasedByMe: true,
       };
     }
