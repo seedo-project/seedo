@@ -119,7 +119,7 @@ export function IdeaFeed({ ideas }: { ideas: Idea[] }) {
           className="flex h-12 cursor-not-allowed items-center gap-2 rounded-full bg-primary px-6 text-sm leading-[1.3] font-semibold tracking-[-0.35px] text-primary-foreground opacity-50 shadow-md"
         >
           <Shuffle className="size-6" aria-hidden />
-          랜덤 아이디어 보기?
+          랜덤 아이디어 보기
         </button>
       </div>
 
