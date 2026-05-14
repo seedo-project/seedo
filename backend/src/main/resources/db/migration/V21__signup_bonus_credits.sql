@@ -99,7 +99,8 @@ $$;
 DO $$
 DECLARE
     SIGNUP_BONUS constant bigint := 300;
-    target_user uuid;
+    target_user      uuid;
+    v_balance_after  bigint;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'auth') THEN
         RETURN;
@@ -116,16 +117,21 @@ BEGIN
                 AND ct.description = '가입 보너스'
           )
     LOOP
-        -- 잔액 + 원장 같은 (DO 블록 자동) 트랜잭션. credit_transactions 의 append-only 트리거가
-        -- INSERT 만 허용하므로 별도 가드 불필요.
+        -- UPDATE 시점에도 자격 조건 (balance = 0) 을 다시 확인 — SELECT 단계와 UPDATE 단계 사이에
+        -- 다른 트랜잭션이 잔액을 바꿔도 race 안 일어남. RETURNING 으로 실제 반영된 잔액을 받아 원장의
+        -- balance_after 에 정확히 기록 (CodeRabbit #186).
         UPDATE public.user_credits
         SET balance = balance + SIGNUP_BONUS
-        WHERE user_id = target_user;
+        WHERE user_id = target_user
+          AND balance = 0
+        RETURNING balance INTO v_balance_after;
 
-        INSERT INTO public.credit_transactions (
-            user_id, amount, type, balance_after, description
-        )
-        VALUES (target_user, SIGNUP_BONUS, 'ADJUST', SIGNUP_BONUS, '가입 보너스');
+        IF FOUND THEN
+            INSERT INTO public.credit_transactions (
+                user_id, amount, type, balance_after, description
+            )
+            VALUES (target_user, SIGNUP_BONUS, 'ADJUST', v_balance_after, '가입 보너스');
+        END IF;
     END LOOP;
 END
 $$;
