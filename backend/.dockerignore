@@ -9,9 +9,9 @@ build/
 .DS_Store
 
 # Secrets / 로컬 env — 절대 이미지에 들어가면 안 됨 (`flyctl secrets set` 으로만).
-.env
-.env.local
-.env.*.local
+# 와일드카드로 .env / .env.local / .env.production / .env.staging 등 모두 제외 (CodeRabbit #198).
+# Spring 은 application.yml 만 읽으므로 .env.example 까지 통째로 제외해도 무해.
+.env*
 
 # Git
 .git/

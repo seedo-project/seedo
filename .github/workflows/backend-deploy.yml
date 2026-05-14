@@ -27,7 +27,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up flyctl
-        uses: superfly/flyctl-actions/setup-flyctl@master
+        # 외부 액션은 불변 SHA 로 핀 — @master / @v1 같은 movable ref 는 공급망 공격 노출 (CodeRabbit #198).
+        # v1.6 의 commit. 새 버전 업데이트 시 Dependabot 또는 수동 갱신.
+        uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1
 
       - name: Deploy to Fly.io
         run: flyctl deploy --remote-only

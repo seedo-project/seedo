@@ -111,7 +111,7 @@ GitHub 레포 → Settings → Secrets and variables → Actions → **New repos
 3. **Root Directory**: `web` (중요 — 모노레포)
 4. **Framework Preset**: Next.js (자동 감지)
 5. **Environment Variables**:
-   ```
+   ```dotenv
    NEXT_PUBLIC_SUPABASE_URL=https://lkwwfwgieffwoeqiliqa.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
    NEXT_PUBLIC_API_BASE_URL=https://seedo-backend.fly.dev
