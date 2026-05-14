@@ -143,7 +143,7 @@ export function IdeaFeed({ ideas }: { ideas: Idea[] }) {
       <Link
         href="/idea/write"
         aria-label="아이디어 작성"
-        className="fixed right-16 bottom-16 flex size-[72px] items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
+        className="fixed right-[68px] bottom-[68px] flex size-[72px] items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
       >
         <Plus className="size-9" aria-hidden />
       </Link>
