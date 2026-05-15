@@ -38,7 +38,7 @@ export default async function ProjectDetailPage({
                 fill
                 sizes="295px"
                 className="object-cover"
-                unoptimized
+                preload
               />
             )}
           </div>
