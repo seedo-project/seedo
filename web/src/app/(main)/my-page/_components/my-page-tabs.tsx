@@ -188,9 +188,7 @@ export function MyPageTabs({ data }: { data: MyPageData }) {
               <IdeasPanel ideas={data.ideas} />
             </TabsContent>
             <TabsContent value="projects">
-              <div className="w-[612px]">
-                <ProjectsPanel projects={data.projects} />
-              </div>
+              <ProjectsPanel projects={data.projects} />
             </TabsContent>
             <TabsContent value="posts">
               <PostsPanel posts={data.posts} />
