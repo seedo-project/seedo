@@ -116,7 +116,7 @@ export function IdeaFeed({ ideas }: { ideas: Idea[] }) {
           disabled
           aria-disabled="true"
           title="랜덤 아이디어 보기 — 준비 중"
-          className="flex h-12 cursor-not-allowed items-center gap-2 rounded-full bg-primary px-6 text-sm leading-[1.3] font-semibold tracking-[-0.35px] text-primary-foreground opacity-50 shadow-md"
+          className="hidden h-12 cursor-not-allowed items-center gap-2 rounded-full bg-primary px-6 text-sm leading-[1.3] font-semibold tracking-[-0.35px] text-primary-foreground opacity-50 shadow-md md:flex"
         >
           <Shuffle className="size-6" aria-hidden />
           랜덤 아이디어 보기
