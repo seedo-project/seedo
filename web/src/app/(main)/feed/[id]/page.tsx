@@ -36,7 +36,7 @@ export default async function ProjectDetailPage({
                 src={project.coverImageUrl}
                 alt=""
                 fill
-                sizes="(max-width: 768px) 100vw, 295px"
+                sizes="(max-width: 768px) calc(100vw - 2rem), 295px"
                 className="object-cover"
                 preload
               />
