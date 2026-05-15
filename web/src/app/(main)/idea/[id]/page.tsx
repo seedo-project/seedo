@@ -22,7 +22,7 @@ export default async function IdeaDetailPage({
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-[820px] px-4 pt-8 pb-16 md:px-0">
+    <main className="mx-auto w-[820px] pt-8 pb-16">
       <div className="flex flex-col gap-4">
         <header className="flex flex-col gap-1">
           <div className="flex items-center justify-between gap-4">

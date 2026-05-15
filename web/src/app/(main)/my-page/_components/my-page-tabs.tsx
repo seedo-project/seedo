@@ -134,17 +134,17 @@ export function MyPageTabs({ data }: { data: MyPageData }) {
   };
 
   return (
-    <main className="px-4 pt-10 pb-16 md:pl-[100px] md:pr-0">
+    <main className="pt-10 pb-16 pl-[100px]">
       <Tabs
         value={active}
         onValueChange={(v) => setActive(v as TabValue)}
         orientation="vertical"
-        className="!flex-col !gap-5 md:!flex-row"
+        className="!gap-5"
       >
         <TabsList
           variant="line"
           aria-label="마이페이지 탭"
-          className="no-scrollbar !h-fit w-full shrink-0 !flex-row overflow-x-auto !gap-0 !bg-transparent !p-0 md:w-[190px] md:!flex-col md:self-start md:mt-[68px]"
+          className="!h-fit w-[190px] shrink-0 !gap-0 !bg-transparent !p-0 self-start mt-[68px]"
         >
           {TABS.map((tab) => (
             <TabsTrigger
@@ -157,7 +157,7 @@ export function MyPageTabs({ data }: { data: MyPageData }) {
           ))}
         </TabsList>
 
-        <div className="flex w-full max-w-[820px] flex-col">
+        <div className="flex w-[820px] flex-col">
           <header className="flex h-9 w-full items-center justify-between">
             <h1 className="text-2xl leading-[1.5] font-bold tracking-[-0.6px] text-foreground">
               {headerLabel}
@@ -176,7 +176,7 @@ export function MyPageTabs({ data }: { data: MyPageData }) {
 
           <div className="mt-8">
             <TabsContent value="profile" className="flex justify-center">
-              <div className="w-full max-w-[400px]">
+              <div className="w-[400px]">
                 <ProfilePanel
                   values={profile}
                   onChange={setProfile}
@@ -188,7 +188,7 @@ export function MyPageTabs({ data }: { data: MyPageData }) {
               <IdeasPanel ideas={data.ideas} />
             </TabsContent>
             <TabsContent value="projects">
-              <div className="w-full max-w-[612px]">
+              <div className="w-[612px]">
                 <ProjectsPanel projects={data.projects} />
               </div>
             </TabsContent>

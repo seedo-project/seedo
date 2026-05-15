@@ -94,8 +94,8 @@ export default function IdeaWritePage() {
 
   if (messages.length === 0) {
     return (
-      <main className="flex min-h-[calc(100svh-108px)] flex-col items-center justify-center px-4 md:px-[100px] pb-24">
-        <div className="flex w-full max-w-[610px] flex-col items-center gap-10">
+      <main className="flex min-h-[calc(100svh-108px)] flex-col items-center justify-center px-[100px] pb-24">
+        <div className="flex w-[610px] flex-col items-center gap-10">
           <h1 className="text-2xl leading-[1.5] font-medium tracking-[-0.6px] text-foreground">
             아이디어가 있으신가요?
           </h1>
@@ -109,7 +109,7 @@ export default function IdeaWritePage() {
 
   return (
     <main className="relative min-h-[calc(100svh-108px)]">
-      <div className="sticky top-0 z-10 flex justify-end border-b border-transparent bg-white/90 px-4 md:px-[100px] py-4 backdrop-blur-sm">
+      <div className="sticky top-0 z-10 flex justify-end border-b border-transparent bg-white/90 px-[100px] py-4 backdrop-blur-sm">
         <Button
           variant="default"
           size="lg"
@@ -119,7 +119,7 @@ export default function IdeaWritePage() {
           {finalizing ? "마무리하는 중..." : "마무리하기"}
         </Button>
       </div>
-      <div className="flex flex-col items-center px-4 md:px-[100px] pb-40 pt-6">
+      <div className="flex flex-col items-center px-[100px] pb-40 pt-6">
         <MessageList messages={messages} />
       </div>
       <div className="sticky bottom-9 flex justify-center pointer-events-none">

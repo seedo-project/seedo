@@ -91,9 +91,9 @@ export function IdeaFeed({ ideas }: { ideas: Idea[] }) {
   };
 
   return (
-    <main className="px-4 md:px-[100px] pt-10 pb-24">
+    <main className="px-[100px] pt-10 pb-24">
       <div className="flex items-center justify-center gap-3">
-        <div className="flex h-12 w-full max-w-[610px] items-center rounded-full border-2 border-primary bg-card px-5 shadow-md">
+        <div className="flex h-12 w-[610px] items-center rounded-full border-2 border-primary bg-card px-5 shadow-md">
           <input
             type="search"
             value={searchQuery}
@@ -116,14 +116,14 @@ export function IdeaFeed({ ideas }: { ideas: Idea[] }) {
           disabled
           aria-disabled="true"
           title="랜덤 아이디어 보기 — 준비 중"
-          className="hidden h-12 cursor-not-allowed items-center gap-2 rounded-full bg-primary px-6 text-sm leading-[1.3] font-semibold tracking-[-0.35px] text-primary-foreground opacity-50 shadow-md md:flex"
+          className="flex h-12 cursor-not-allowed items-center gap-2 rounded-full bg-primary px-6 text-sm leading-[1.3] font-semibold tracking-[-0.35px] text-primary-foreground opacity-50 shadow-md"
         >
           <Shuffle className="size-6" aria-hidden />
           랜덤 아이디어 보기
         </button>
       </div>
 
-      <section className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <section className="mt-12 grid grid-cols-3 gap-5">
         {showSearchResults ? (
           <SearchResultsGrid
             state={search}

@@ -8,7 +8,7 @@ export default async function FeedPage() {
   const projects = await fetchProjectFeed();
 
   return (
-    <main className="px-4 md:px-[100px] pt-8 pb-16">
+    <main className="px-[100px] pt-8 pb-16">
       <div className="flex w-full items-center justify-between">
         <h1 className="text-2xl leading-[1.5] font-bold tracking-[-0.6px] text-foreground">
           지금 뜨는 프로젝트
@@ -27,7 +27,7 @@ export default async function FeedPage() {
           description="첫 프로젝트가 곧 올라옵니다"
         />
       ) : (
-        <section className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <section className="mt-8 grid grid-cols-2 gap-4">
           {projects.map((p) => (
             <ProjectCard key={p.id} project={p} href={`/feed/${p.id}`} />
           ))}
