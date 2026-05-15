@@ -33,7 +33,7 @@ export function Navbar() {
   };
 
   return (
-    <header className="h-[108px] w-full border-b border-input px-4 md:px-[100px] py-[32px]">
+    <header className="h-[108px] w-full border-b border-input px-[100px] py-[32px]">
       <div className="flex w-full items-start justify-between pt-5">
         <Link href="/idea" aria-label="Seedo 홈" className="block">
           <Image
@@ -45,18 +45,18 @@ export function Navbar() {
             className="h-[29.591px] w-[118px]"
           />
         </Link>
-        <div className="flex items-center gap-2 md:gap-8">
-          <nav className="flex items-center gap-2 md:gap-10">
+        <div className="flex items-center gap-8">
+          <nav className="flex items-center gap-10">
             {NAV_ITEMS.map(({ key, label, href }) => {
               const active = key === currentKey;
               return (
                 <Link
                   key={key}
                   href={href}
-                  className="relative flex items-center justify-center rounded-md px-1.5 py-2 md:px-3"
+                  className="relative flex items-center justify-center rounded-md px-3 py-2"
                 >
                   <span
-                    className={`text-xs leading-[1.5] font-bold tracking-[-0.375px] md:text-[15px] ${
+                    className={`text-[15px] leading-[1.5] font-bold tracking-[-0.375px] ${
                       active ? "text-foreground" : "text-muted-foreground"
                     }`}
                   >

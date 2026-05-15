@@ -236,7 +236,7 @@ export function ProjectWriteForm({ draft }: { draft: DraftProject }) {
   };
 
   return (
-    <main className="mx-auto w-full max-w-[820px] px-4 pt-8 pb-16 md:px-0">
+    <main className="mx-auto w-[820px] pt-8 pb-16">
       <form onSubmit={handleSubmit(onPublish)}>
         <div className="flex flex-col gap-1">
           <header className="flex w-full items-center justify-between">

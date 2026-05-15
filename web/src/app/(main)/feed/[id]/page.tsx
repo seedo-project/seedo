@@ -27,16 +27,16 @@ export default async function ProjectDetailPage({
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-[820px] px-4 pt-8 pb-16 md:px-0">
+    <main className="mx-auto w-[820px] pt-8 pb-16">
       <div className="flex flex-col gap-8">
-        <div className="flex w-full flex-col gap-6 md:flex-row md:gap-10">
-          <div className="relative aspect-square w-full shrink-0 overflow-hidden rounded-lg bg-muted md:size-[295px]">
+        <div className="flex w-full gap-10">
+          <div className="relative size-[295px] shrink-0 overflow-hidden rounded-lg bg-muted">
             {project.coverImageUrl && (
               <Image
                 src={project.coverImageUrl}
                 alt=""
                 fill
-                sizes="(max-width: 768px) calc(100vw - 2rem), 295px"
+                sizes="295px"
                 className="object-cover"
                 preload
               />

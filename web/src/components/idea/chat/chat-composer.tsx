@@ -38,7 +38,7 @@ export function ChatComposer({
         e.preventDefault();
         submit();
       }}
-      className="flex h-12 w-full max-w-[610px] items-center justify-between rounded-full border border-[#d4d4d8] bg-white py-1.5 pr-1.5 pl-5 shadow-md"
+      className="flex h-12 w-[610px] items-center justify-between rounded-full border border-[#d4d4d8] bg-white py-1.5 pr-1.5 pl-5 shadow-md"
     >
       <input
         type="text"
