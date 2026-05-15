@@ -59,7 +59,17 @@ function buildBirthDate(y: string, m: string, d: string): string | null {
   if (year < 1900 || year > 2100) return null;
   if (month < 1 || month > 12) return null;
   if (day < 1 || day > 31) return null;
-  return `${year}-${pad2(String(month))}-${pad2(String(day))}`;
+  const normalized = `${year}-${pad2(String(month))}-${pad2(String(day))}`;
+  const date = new Date(`${normalized}T00:00:00Z`);
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() + 1 !== month ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return normalized;
 }
 
 function genderToMeta(g: ProfileMock["gender"]): string | null {
