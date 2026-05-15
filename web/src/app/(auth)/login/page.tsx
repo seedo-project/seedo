@@ -49,7 +49,7 @@ const SOCIAL_LOGINS: SocialLogin[] = [
 
 function LoginFormFallback() {
   return (
-    <div className="w-[400px]">
+    <div className="w-full max-w-[400px]">
       <div className="flex gap-3">
         <div className="flex flex-1 flex-col gap-3">
           <Skeleton className="h-12 rounded-md" />
@@ -83,7 +83,7 @@ export default function LoginPage() {
         </Suspense>
       </div>
 
-      <div className="mt-8 h-px w-[400px] bg-border" />
+      <div className="mt-8 h-px w-full max-w-[400px] bg-border" />
 
       <div className="mt-8 flex items-center gap-5">
         {SOCIAL_LOGINS.map(({ name, label, Icon, bg, iconClass }) => (

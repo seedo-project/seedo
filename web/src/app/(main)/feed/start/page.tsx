@@ -9,7 +9,7 @@ export default async function ProjectStartPage() {
 
   if (!draft) {
     return (
-      <main className="mx-auto w-[820px] pt-8 pb-16">
+      <main className="mx-auto w-full max-w-[820px] px-4 pt-8 pb-16 md:px-0">
         <EmptyState
           title="아직 시작할 프로젝트가 없어요"
           description="아이디어 상세에서 '프로젝트 시작하기' 로 채택하면 DRAFT 프로젝트가 생성됩니다"
