@@ -74,7 +74,7 @@ export function IdeaPurchaseModal({
       <DialogContent className="flex flex-col gap-5 px-5 pb-5 sm:max-w-[440px]">
         <DialogHeader>
           <DialogTitle className="text-center text-xl font-bold tracking-[-0.5px] text-foreground">
-            아이디어 구매하기?
+            아이디어 구매하기
           </DialogTitle>
         </DialogHeader>
 
