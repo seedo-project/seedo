@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import { ChipStatus } from "@/components/project/chip-status";
 import { CommentSection } from "@/components/shared/comment-section";
 import { HypeButton } from "@/components/shared/hype-button";
@@ -28,10 +30,18 @@ export default async function ProjectDetailPage({
     <main className="mx-auto w-[820px] pt-8 pb-16">
       <div className="flex flex-col gap-8">
         <div className="flex w-full gap-10">
-          <div
-            className="size-[295px] shrink-0 rounded-lg bg-muted"
-            aria-hidden
-          />
+          <div className="relative size-[295px] shrink-0 overflow-hidden rounded-lg bg-muted">
+            {project.coverImageUrl && (
+              <Image
+                src={project.coverImageUrl}
+                alt=""
+                fill
+                sizes="295px"
+                className="object-cover"
+                unoptimized
+              />
+            )}
+          </div>
           <div className="flex flex-1 flex-col items-end justify-between">
             <div className="flex w-full flex-col gap-1.5">
               <div className="flex items-start justify-between gap-1.5">
@@ -73,6 +83,17 @@ export default async function ProjectDetailPage({
         <article className="h-[520px] overflow-y-auto rounded-md border border-border p-4 text-base leading-[1.5] tracking-[-0.4px] whitespace-pre-line text-muted-foreground">
           {project.body}
         </article>
+
+        {project.ideaSnapshotMd && (
+          <details className="rounded-md border border-border">
+            <summary className="cursor-pointer px-4 py-3 text-sm leading-[1.5] font-semibold tracking-[-0.35px] text-foreground">
+              원본 아이디어 보기
+            </summary>
+            <div className="border-t border-border p-4 text-sm leading-[1.5] tracking-[-0.35px] whitespace-pre-line text-muted-foreground">
+              {project.ideaSnapshotMd}
+            </div>
+          </details>
+        )}
 
         <CommentSection
           target="project"

@@ -11,7 +11,9 @@ export type ProjectDetail = {
   authorName: string;
   description: string;
   registeredAt: string;
+  coverImageUrl: string | null;
   body: string;
+  ideaSnapshotMd: string;
 };
 
 function statusToChip(status: string): ChipVariant {
@@ -51,6 +53,10 @@ export async function fetchProjectDetail(id: string): Promise<ProjectDetail> {
       `id,
        status,
        leader_id,
+       title,
+       description,
+       cover_image_url,
+       guide_md,
        idea_snapshot_md,
        created_at,
        ideas:ideas!projects_idea_id_fkey (
@@ -77,18 +83,24 @@ export async function fetchProjectDetail(id: string): Promise<ProjectDetail> {
       ? idea.idea_documents[0]
       : idea.idea_documents
     : null;
-  const title = doc?.title ?? snapshotTitle(data.idea_snapshot_md);
+  // publish 시 NOT NULL 가드(V15) 가 있지만 DRAFT 상세 진입 가능성 대비 idea 스냅샷 폴백 유지.
+  const title = data.title ?? doc?.title ?? snapshotTitle(data.idea_snapshot_md);
+  const description =
+    data.description ?? snapshotDescription(data.idea_snapshot_md);
+  const body = data.guide_md ?? data.idea_snapshot_md;
 
   return {
     id: String(data.id),
     status: statusToChip(data.status),
     title,
     authorName: leader?.nickname ?? "익명",
-    description: snapshotDescription(data.idea_snapshot_md),
+    description,
     registeredAt: formatPublishedDateKo(data.created_at).replace(
       "게시",
       "등록",
     ),
-    body: data.idea_snapshot_md,
+    coverImageUrl: data.cover_image_url ?? null,
+    body,
+    ideaSnapshotMd: data.idea_snapshot_md,
   };
 }

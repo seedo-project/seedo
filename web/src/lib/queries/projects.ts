@@ -77,6 +77,9 @@ export async function fetchProjectFeed(): Promise<Project[]> {
       `id,
        status,
        leader_id,
+       title,
+       description,
+       cover_image_url,
        idea_snapshot_md,
        ideas:ideas!projects_idea_id_fkey (
          current_version_id,
@@ -107,13 +110,16 @@ export async function fetchProjectFeed(): Promise<Project[]> {
         ? idea.idea_documents[0]
         : idea.idea_documents
       : null;
-    const title = doc?.title ?? snapshotTitle(row.idea_snapshot_md);
+    // publish 시 NOT NULL 가드(V15)가 있지만 DRAFT 카드도 노출될 수 있어 idea 스냅샷 폴백 유지.
+    const title = row.title ?? doc?.title ?? snapshotTitle(row.idea_snapshot_md);
+    const description =
+      row.description ?? snapshotPreview(row.idea_snapshot_md);
     return {
       id: String(row.id),
       title,
       subtitle: profileMap.get(row.leader_id) ?? "",
-      description: snapshotPreview(row.idea_snapshot_md),
-      thumbnailUrl: null,
+      description,
+      thumbnailUrl: row.cover_image_url ?? null,
       statuses: statusToChips(row.status),
     };
   });
