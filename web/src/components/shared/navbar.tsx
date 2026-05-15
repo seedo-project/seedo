@@ -33,47 +33,26 @@ export function Navbar() {
   };
 
   return (
-    <header className="h-[108px] w-full border-b border-input px-4 md:px-[100px] py-[32px]">
-      <div className="flex w-full items-start justify-between pt-5">
-        <Link href="/idea" aria-label="Seedo 홈" className="block">
-          <Image
-            src="/seedo/logo-nav.svg"
-            alt="Seedo"
-            width={118}
-            height={30}
-            priority
-            className="h-[29.591px] w-[118px]"
-          />
-        </Link>
-        <div className="flex items-center gap-2 md:gap-8">
-          <nav className="flex items-center gap-2 md:gap-10">
-            {NAV_ITEMS.map(({ key, label, href }) => {
-              const active = key === currentKey;
-              return (
-                <Link
-                  key={key}
-                  href={href}
-                  className="relative flex items-center justify-center rounded-md px-1.5 py-2 md:px-3"
-                >
-                  <span
-                    className={`text-xs leading-[1.5] font-bold tracking-[-0.375px] md:text-[15px] ${
-                      active ? "text-foreground" : "text-muted-foreground"
-                    }`}
-                  >
-                    {label}
-                  </span>
-                  {active && (
-                    <span
-                      aria-hidden
-                      className="absolute -bottom-0.5 size-1 rounded-full bg-primary"
-                    />
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
+    <header className="w-full border-b border-input px-4 py-4 md:h-[108px] md:px-[100px] md:py-[32px]">
+      <div className="flex w-full flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-0 md:pt-5">
+        {/* 모바일 1 행: 로고 + 사용자 — md 이상에선 contents 로 풀려서 nav 와 함께 한 줄에 배치 */}
+        <div className="flex w-full items-center justify-between md:contents">
+          <Link
+            href="/idea"
+            aria-label="Seedo 홈"
+            className="block md:order-1"
+          >
+            <Image
+              src="/seedo/logo-nav.svg"
+              alt="Seedo"
+              width={118}
+              height={30}
+              priority
+              className="h-[29.591px] w-[118px]"
+            />
+          </Link>
           {user ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 md:order-3">
               <Link
                 href="/credits"
                 aria-label="크레딧 잔액 / 거래 내역"
@@ -100,13 +79,42 @@ export function Navbar() {
           ) : (
             <Link
               href="/login"
-              className="inline-flex h-7 items-center gap-1 rounded-[min(var(--radius-md),12px)] border border-border bg-background px-2.5 text-[0.8rem] font-medium text-foreground hover:bg-muted"
+              className="inline-flex h-7 items-center gap-1 rounded-[min(var(--radius-md),12px)] border border-border bg-background px-2.5 text-[0.8rem] font-medium text-foreground hover:bg-muted md:order-3"
             >
               <LogIn className="size-3.5" aria-hidden />
               로그인
             </Link>
           )}
         </div>
+
+        {/* 모바일 2 행: 네비. md 이상에선 로고/사용자 사이에 자리. */}
+        <nav className="flex w-full items-center justify-around gap-2 overflow-x-auto md:order-2 md:w-auto md:justify-start md:gap-10">
+          {NAV_ITEMS.map(({ key, label, href }) => {
+            const active = key === currentKey;
+            return (
+              <Link
+                key={key}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className="relative flex shrink-0 items-center justify-center rounded-md px-1.5 py-2 whitespace-nowrap md:px-3"
+              >
+                <span
+                  className={`text-sm leading-[1.5] font-bold tracking-[-0.375px] md:text-[15px] ${
+                    active ? "text-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  {label}
+                </span>
+                {active && (
+                  <span
+                    aria-hidden
+                    className="absolute -bottom-0.5 size-1 rounded-full bg-primary"
+                  />
+                )}
+              </Link>
+            );
+          })}
+        </nav>
       </div>
     </header>
   );
