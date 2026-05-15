@@ -35,11 +35,11 @@ EXPOSE 8080
 
 # JVM 옵션:
 # - MaxRAMPercentage: 컨테이너 메모리 한계의 75% 까지만 heap 으로 사용. 나머지는 metaspace / direct buffer.
-# - prefer-ipv4: Fly.io 의 내부 네트워크 ipv6 fallback 안정성.
 # - UseG1GC: Java 25 기본이지만 명시.
+# preferIPv4Stack 은 의도적으로 안 박는다 — Netty native epoll 이 IPv6 소켓을 시도하면서
+# EAFNOSUPPORT(-97) 로 깨진다 (#206). Fly.io outbound 는 dual-stack 이라 default 가 안전.
 ENTRYPOINT ["java", \
     "-XX:MaxRAMPercentage=75.0", \
     "-XX:+UseG1GC", \
     "-Djava.security.egd=file:/dev/./urandom", \
-    "-Djava.net.preferIPv4Stack=true", \
     "-jar", "/app/app.jar"]
