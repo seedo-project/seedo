@@ -72,7 +72,6 @@ export function AdoptButton({
         }
         return;
       }
-      const projectId = body.data?.projectId;
       toast.success(
         body.data?.rewardPaid
           ? `프로젝트가 생성되었습니다 (작성자에게 ${rewardCredits} 크레딧 지급)`
@@ -80,10 +79,8 @@ export function AdoptButton({
       );
       setOpen(false);
       await refresh();
-      if (projectId) {
-        router.push(`/feed/${projectId}`);
-        router.refresh();
-      }
+      router.push("/feed/start");
+      router.refresh();
     } catch {
       toast.error("네트워크 오류");
     } finally {
