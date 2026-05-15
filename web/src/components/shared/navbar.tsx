@@ -95,7 +95,8 @@ export function Navbar() {
               <Link
                 key={key}
                 href={href}
-                className="relative flex items-center justify-center rounded-md px-1.5 py-2 md:px-3"
+                aria-current={active ? "page" : undefined}
+                className="relative flex shrink-0 items-center justify-center rounded-md px-1.5 py-2 whitespace-nowrap md:px-3"
               >
                 <span
                   className={`text-sm leading-[1.5] font-bold tracking-[-0.375px] md:text-[15px] ${
