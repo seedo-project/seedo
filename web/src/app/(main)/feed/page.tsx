@@ -9,10 +9,7 @@ export default async function FeedPage() {
 
   return (
     <main className="px-4 md:px-[100px] pt-8 pb-16">
-      <div className="flex w-full items-center justify-between">
-        <h1 className="text-2xl leading-[1.5] font-bold tracking-[-0.6px] text-foreground">
-          지금 뜨는 프로젝트? 뭐 이런..
-        </h1>
+      <div className="flex w-full items-center justify-end">
         <Link
           href="/feed/start"
           className="flex h-9 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm leading-[1.3] font-semibold tracking-[-0.35px] text-primary-foreground hover:bg-primary/90"
