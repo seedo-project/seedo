@@ -97,7 +97,7 @@ export async function fetchMyPageData(): Promise<MyPageQueryResult | null> {
     supabase
       .from("projects")
       .select(
-        `id, status, idea_snapshot_md,
+        `id, status, title, description, cover_image_url, idea_snapshot_md,
          ideas:ideas!projects_idea_id_fkey (
            current_version_id,
            idea_documents!ideas_current_version_id_fkey ( title )
@@ -146,12 +146,15 @@ export async function fetchMyPageData(): Promise<MyPageQueryResult | null> {
         ? idea.idea_documents[0]
         : idea.idea_documents
       : null;
+    const title = row.title ?? doc?.title ?? snapshotTitle(row.idea_snapshot_md);
+    const description =
+      row.description ?? snapshotPreview(row.idea_snapshot_md);
     return {
       id: String(row.id),
-      title: doc?.title ?? snapshotTitle(row.idea_snapshot_md),
+      title,
       subtitle: projectSubtitle,
-      description: snapshotPreview(row.idea_snapshot_md),
-      thumbnailUrl: null,
+      description,
+      thumbnailUrl: row.cover_image_url ?? null,
       statuses: statusToChips(row.status),
     };
   });
