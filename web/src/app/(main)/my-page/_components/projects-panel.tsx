@@ -15,7 +15,7 @@ export function ProjectsPanel({ projects }: { projects: Project[] }) {
   return (
     <section className="flex flex-col gap-4">
       {projects.map((p) => (
-        <ProjectCard key={p.id} project={p} />
+        <ProjectCard key={p.id} project={p} href={`/feed/${p.id}`} />
       ))}
     </section>
   );
