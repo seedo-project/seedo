@@ -289,7 +289,6 @@ export function ProjectWriteForm({ draft }: { draft: DraftProject }) {
                   fill
                   sizes="128px"
                   className="object-cover"
-                  unoptimized
                 />
               ) : uploading ? (
                 <Loader2 className="size-6 animate-spin" aria-hidden />
