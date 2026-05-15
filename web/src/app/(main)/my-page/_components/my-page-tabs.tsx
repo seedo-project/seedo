@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import type { Idea } from "@/components/idea/idea-card";
@@ -11,10 +12,16 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "@/lib/toast";
 
 import { IdeasPanel } from "./ideas-panel";
 import { PostsPanel } from "./posts-panel";
-import { ProfilePanel, type ProfileMock } from "./profile-panel";
+import {
+  ProfilePanel,
+  type ProfileEditableFields,
+  type ProfileMock,
+} from "./profile-panel";
 import { ProjectsPanel } from "./projects-panel";
 
 const TABS = [
@@ -33,10 +40,88 @@ export type MyPageData = {
   posts: Post[];
 };
 
+function pad2(s: string) {
+  return s.length === 1 ? `0${s}` : s;
+}
+
+function buildBirthDate(y: string, m: string, d: string): string | null {
+  if (!y && !m && !d) return null;
+  if (!y || !m || !d) return null;
+  const year = Number(y);
+  const month = Number(m);
+  const day = Number(d);
+  if (
+    !Number.isInteger(year) ||
+    !Number.isInteger(month) ||
+    !Number.isInteger(day)
+  )
+    return null;
+  if (year < 1900 || year > 2100) return null;
+  if (month < 1 || month > 12) return null;
+  if (day < 1 || day > 31) return null;
+  return `${year}-${pad2(String(month))}-${pad2(String(day))}`;
+}
+
+function genderToMeta(g: ProfileMock["gender"]): string | null {
+  if (g === "MALE") return "male";
+  if (g === "FEMALE") return "female";
+  return null;
+}
+
 export function MyPageTabs({ data }: { data: MyPageData }) {
+  const router = useRouter();
   const [active, setActive] = useState<TabValue>("profile");
+  const [profile, setProfile] = useState<ProfileEditableFields>({
+    name: data.profile.name,
+    birthYear: data.profile.birthYear,
+    birthMonth: data.profile.birthMonth,
+    birthDay: data.profile.birthDay,
+    gender: data.profile.gender,
+  });
+  const [saving, setSaving] = useState(false);
+
   const headerLabel =
     TABS.find((t) => t.value === active)?.header ?? "마이페이지";
+
+  const handleSave = async () => {
+    if (saving) return;
+    if (!profile.name.trim()) {
+      toast.error("이름을 입력하세요");
+      return;
+    }
+    const birthDate = buildBirthDate(
+      profile.birthYear,
+      profile.birthMonth,
+      profile.birthDay,
+    );
+    if (
+      (profile.birthYear || profile.birthMonth || profile.birthDay) &&
+      !birthDate
+    ) {
+      toast.error("생년월일을 올바르게 입력하세요");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          name: profile.name.trim(),
+          birth_date: birthDate,
+          gender: genderToMeta(profile.gender),
+        },
+      });
+      if (error) throw error;
+      toast.success("변경사항을 저장했습니다");
+      router.refresh();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "저장에 실패했습니다";
+      toast.error(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <main className="pt-10 pb-16 pl-[100px]">
@@ -70,9 +155,11 @@ export function MyPageTabs({ data }: { data: MyPageData }) {
             {active === "profile" && (
               <button
                 type="button"
-                className="flex h-9 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm leading-[1.3] font-semibold tracking-[-0.35px] text-primary-foreground hover:bg-primary/90"
+                onClick={handleSave}
+                disabled={saving}
+                className="flex h-9 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm leading-[1.3] font-semibold tracking-[-0.35px] text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
               >
-                변경사항 저장
+                {saving ? "저장 중..." : "변경사항 저장"}
               </button>
             )}
           </header>
@@ -80,7 +167,11 @@ export function MyPageTabs({ data }: { data: MyPageData }) {
           <div className="mt-8">
             <TabsContent value="profile" className="flex justify-center">
               <div className="w-[400px]">
-                <ProfilePanel profile={data.profile} />
+                <ProfilePanel
+                  values={profile}
+                  onChange={setProfile}
+                  email={data.profile.email}
+                />
               </div>
             </TabsContent>
             <TabsContent value="ideas">

@@ -12,16 +12,33 @@ export type ProfileMock = {
   email: string;
 };
 
+export type ProfileEditableFields = Pick<
+  ProfileMock,
+  "name" | "birthYear" | "birthMonth" | "birthDay" | "gender"
+>;
+
 const GENDER_OPTIONS = [
   { value: "MALE", label: "남성" },
   { value: "FEMALE", label: "여성" },
   { value: "UNDISCLOSED", label: "밝히고 싶지 않음" },
 ] as const;
 
-export function ProfilePanel({ profile }: { profile: ProfileMock }) {
-  const [gender, setGender] = useState<ProfileMock["gender"]>(profile.gender);
+export function ProfilePanel({
+  values,
+  onChange,
+  email,
+}: {
+  values: ProfileEditableFields;
+  onChange: (next: ProfileEditableFields) => void;
+  email: string;
+}) {
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+
+  const update = <K extends keyof ProfileEditableFields>(
+    key: K,
+    value: ProfileEditableFields[K],
+  ) => onChange({ ...values, [key]: value });
 
   return (
     <div className="flex flex-col gap-9">
@@ -29,7 +46,8 @@ export function ProfilePanel({ profile }: { profile: ProfileMock }) {
         <Row label="이름">
           <input
             type="text"
-            defaultValue={profile.name}
+            value={values.name}
+            onChange={(e) => update("name", e.target.value)}
             className="h-12 w-[276px] rounded-md border border-input bg-card px-4 py-3 text-sm leading-[1.5] tracking-[-0.35px] text-foreground focus:outline-none"
           />
         </Row>
@@ -38,20 +56,35 @@ export function ProfilePanel({ profile }: { profile: ProfileMock }) {
           <div className="flex items-center gap-1.5">
             <input
               type="text"
+              inputMode="numeric"
               aria-label="출생연도"
-              defaultValue={`${profile.birthYear}년`}
+              placeholder="YYYY"
+              value={values.birthYear}
+              onChange={(e) =>
+                update("birthYear", e.target.value.replace(/\D/g, "").slice(0, 4))
+              }
               className="h-12 w-[88px] rounded-md border border-input bg-card px-4 py-3 text-center text-sm leading-[1.5] tracking-[-0.35px] text-foreground focus:outline-none"
             />
             <input
               type="text"
+              inputMode="numeric"
               aria-label="출생월"
-              defaultValue={`${profile.birthMonth}월`}
+              placeholder="MM"
+              value={values.birthMonth}
+              onChange={(e) =>
+                update("birthMonth", e.target.value.replace(/\D/g, "").slice(0, 2))
+              }
               className="h-12 w-[88px] rounded-md border border-input bg-card px-4 py-3 text-center text-sm leading-[1.5] tracking-[-0.35px] text-foreground focus:outline-none"
             />
             <input
               type="text"
+              inputMode="numeric"
               aria-label="출생일"
-              defaultValue={`${profile.birthDay}일`}
+              placeholder="DD"
+              value={values.birthDay}
+              onChange={(e) =>
+                update("birthDay", e.target.value.replace(/\D/g, "").slice(0, 2))
+              }
               className="h-12 w-[88px] rounded-md border border-input bg-card px-4 py-3 text-center text-sm leading-[1.5] tracking-[-0.35px] text-foreground focus:outline-none"
             />
           </div>
@@ -60,13 +93,13 @@ export function ProfilePanel({ profile }: { profile: ProfileMock }) {
         <Row label="성별">
           <div className="flex w-[276px] items-center gap-1.5">
             {GENDER_OPTIONS.map((opt, i) => {
-              const active = gender === opt.value;
+              const active = values.gender === opt.value;
               const isLast = i === GENDER_OPTIONS.length - 1;
               return (
                 <button
                   key={opt.value}
                   type="button"
-                  onClick={() => setGender(opt.value)}
+                  onClick={() => update("gender", opt.value)}
                   aria-pressed={active}
                   className={`flex h-12 items-center justify-center rounded-md px-4 py-3 text-sm leading-[1.5] tracking-[-0.35px] transition-colors ${
                     isLast ? "flex-1" : "w-[72px]"
@@ -88,8 +121,9 @@ export function ProfilePanel({ profile }: { profile: ProfileMock }) {
         <Row label="아이디(이메일)">
           <input
             type="email"
-            defaultValue={profile.email}
-            className="h-12 w-[276px] rounded-md border border-input bg-card px-4 py-3 text-sm leading-[1.5] tracking-[-0.35px] text-foreground focus:outline-none"
+            defaultValue={email}
+            disabled
+            className="h-12 w-[276px] rounded-md border border-input bg-card px-4 py-3 text-sm leading-[1.5] tracking-[-0.35px] text-muted-foreground focus:outline-none"
           />
         </Row>
 
@@ -145,7 +179,8 @@ function PasswordField({
         type={visible ? "text" : "password"}
         aria-label={ariaLabel}
         defaultValue="dummypassword"
-        className="flex-1 bg-transparent text-sm leading-[1.5] tracking-[-0.35px] text-foreground focus:outline-none"
+        disabled
+        className="flex-1 bg-transparent text-sm leading-[1.5] tracking-[-0.35px] text-muted-foreground focus:outline-none"
       />
       <button
         type="button"
