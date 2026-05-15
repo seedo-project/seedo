@@ -88,7 +88,7 @@ export function Navbar() {
         </div>
 
         {/* 모바일 2 행: 네비. md 이상에선 로고/사용자 사이에 자리. */}
-        <nav className="no-scrollbar flex w-full items-center justify-around gap-2 overflow-x-auto md:order-2 md:w-auto md:justify-start md:gap-10">
+        <nav className="flex w-full items-center justify-around gap-2 overflow-x-auto md:order-2 md:w-auto md:justify-start md:gap-10">
           {NAV_ITEMS.map(({ key, label, href }) => {
             const active = key === currentKey;
             return (

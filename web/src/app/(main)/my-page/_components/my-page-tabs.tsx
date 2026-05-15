@@ -144,7 +144,7 @@ export function MyPageTabs({ data }: { data: MyPageData }) {
         <TabsList
           variant="line"
           aria-label="마이페이지 탭"
-          className="no-scrollbar !h-fit w-full shrink-0 !flex-row overflow-x-auto !gap-0 !bg-transparent !p-0 md:w-[190px] md:!flex-col md:self-start md:mt-[68px]"
+          className="!h-fit w-full shrink-0 !flex-row overflow-x-auto !gap-0 !bg-transparent !p-0 md:w-[190px] md:!flex-col md:self-start md:mt-[68px]"
         >
           {TABS.map((tab) => (
             <TabsTrigger
