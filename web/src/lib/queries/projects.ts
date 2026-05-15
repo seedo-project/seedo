@@ -1,4 +1,7 @@
+import { unstable_cache } from "next/cache";
+
 import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import type { Project } from "@/components/project/project-card";
 import type { ChipVariant } from "@/components/project/chip-status";
 
@@ -68,8 +71,19 @@ function snapshotTitle(md: string): string {
   return md.split("\n")[0]?.slice(0, 40) ?? "프로젝트";
 }
 
-export async function fetchProjectFeed(): Promise<Project[]> {
-  const supabase = await createClient();
+/**
+ * 60 초 캐시. 프로젝트 피드는 user-agnostic (RLS 의 PUBLISHED 공개 정책) 이라
+ * cookies 비의존 public client 로 동일 결과를 가져온다. 새 프로젝트 게시/수정 시
+ * `revalidateTag("projects:feed")` 로 명시적 무효화 가능 (후속 작업).
+ */
+export const fetchProjectFeed = unstable_cache(
+  fetchProjectFeedRaw,
+  ["projects:feed"],
+  { revalidate: 60, tags: ["projects:feed"] },
+);
+
+async function fetchProjectFeedRaw(): Promise<Project[]> {
+  const supabase = createPublicClient();
 
   const { data, error } = await supabase
     .from("projects")
