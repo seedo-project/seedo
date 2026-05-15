@@ -14,7 +14,7 @@ export function IdeasPanel({ ideas }: { ideas: Idea[] }) {
     );
   }
   return (
-    <section className="grid grid-cols-2 gap-5">
+    <section className="grid grid-cols-1 sm:grid-cols-2 gap-5">
       {ideas.map((i) => (
         <IdeaCard key={i.id} idea={i} />
       ))}

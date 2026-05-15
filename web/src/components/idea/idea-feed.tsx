@@ -91,9 +91,9 @@ export function IdeaFeed({ ideas }: { ideas: Idea[] }) {
   };
 
   return (
-    <main className="px-[100px] pt-10 pb-24">
+    <main className="px-4 md:px-[100px] pt-10 pb-24">
       <div className="flex items-center justify-center gap-3">
-        <div className="flex h-12 w-[610px] items-center rounded-full border-2 border-primary bg-card px-5 shadow-md">
+        <div className="flex h-12 w-full max-w-[610px] items-center rounded-full border-2 border-primary bg-card px-5 shadow-md">
           <input
             type="search"
             value={searchQuery}

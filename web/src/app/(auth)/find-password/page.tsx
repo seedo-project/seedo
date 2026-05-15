@@ -41,7 +41,7 @@ export default function FindPasswordPage() {
 
   return (
     <main className="flex min-h-svh items-center justify-center bg-muted px-4 py-12">
-      <div className="flex w-[440px] flex-col items-center gap-5 rounded-xl bg-card px-5 pb-5">
+      <div className="flex w-full max-w-[440px] flex-col items-center gap-5 rounded-xl bg-card px-5 pb-5">
         <header className="flex w-full items-center justify-between py-5">
           <button
             type="button"
@@ -65,7 +65,7 @@ export default function FindPasswordPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="flex w-[400px] flex-col items-start"
+          className="flex w-full max-w-[400px] flex-col items-start"
         >
           <p className="px-3 text-sm leading-[1.5] tracking-[-0.35px] text-muted-foreground">
             가입하신 이메일로 비밀번호 재설정 링크를 보내드립니다.

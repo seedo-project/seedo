@@ -60,7 +60,7 @@ export function LoginForm() {
   const firstError = errors.email?.message ?? errors.password?.message ?? error;
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="w-[400px]">
+    <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-[400px]">
       <div className="flex gap-3">
         <div className="flex flex-1 flex-col gap-3">
           <Input

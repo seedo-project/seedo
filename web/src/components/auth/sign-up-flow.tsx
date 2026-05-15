@@ -73,7 +73,7 @@ export function SignUpFlow() {
 
   return (
     <main className="flex min-h-svh items-center justify-center bg-muted px-4 py-12">
-      <div className="flex w-[440px] flex-col items-center gap-5 rounded-xl bg-card px-5 pb-5">
+      <div className="flex w-full max-w-[440px] flex-col items-center gap-5 rounded-xl bg-card px-5 pb-5">
         <div className="flex w-full flex-col items-center">
           <header className="flex w-full items-center justify-between py-5">
             <button
@@ -123,7 +123,7 @@ function TermsStep({ onNext }: { onNext: (marketing: boolean) => void }) {
   };
 
   return (
-    <div className="flex w-[400px] flex-col items-start gap-3">
+    <div className="flex w-full max-w-[400px] flex-col items-start gap-3">
       <div className="h-[440px] w-full overflow-y-auto rounded-md border border-border p-4">
         <p className="text-sm leading-[1.5] font-bold tracking-[-0.35px] text-muted-foreground">
           {TERMS_TITLE}
@@ -309,7 +309,7 @@ function InfoStep({ marketingConsent }: { marketingConsent: boolean }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex w-[400px] flex-col items-start gap-9 py-5"
+      className="flex w-full max-w-[400px] flex-col items-start gap-9 py-5"
     >
       <div className="flex w-full flex-col items-start gap-3">
         <FieldRow label="이름">

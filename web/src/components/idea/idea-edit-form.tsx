@@ -116,7 +116,7 @@ export function IdeaEditForm({
   };
 
   return (
-    <main className="mx-auto w-[820px] pt-8 pb-16">
+    <main className="mx-auto w-full max-w-[820px] px-4 pt-8 pb-16 md:px-0">
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
         <header className="flex items-center justify-between">
           <h1 className="text-2xl leading-[1.5] font-bold tracking-[-0.6px] text-foreground">

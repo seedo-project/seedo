@@ -48,7 +48,7 @@ export function BoardView({ posts }: { posts: Post[] }) {
     });
 
   return (
-    <main className="mx-auto w-[820px] pt-8 pb-16">
+    <main className="mx-auto w-full max-w-[820px] px-4 pt-8 pb-16 md:px-0">
       <div className="flex w-full items-center justify-between">
         <h1 className="text-2xl leading-[1.5] font-bold tracking-[-0.6px] text-foreground">
           게시판
@@ -61,7 +61,7 @@ export function BoardView({ posts }: { posts: Post[] }) {
         </Link>
       </div>
 
-      <div className="mt-12 flex w-full items-center justify-between">
+      <div className="mt-12 flex w-full flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <Select
             value={selectedType}
@@ -102,7 +102,7 @@ export function BoardView({ posts }: { posts: Post[] }) {
           </Select>
         </div>
 
-        <div className="flex h-10 w-[295px] items-center rounded-md border border-border bg-card pr-2 pl-3">
+        <div className="flex h-10 w-full max-w-[295px] items-center rounded-md border border-border bg-card pr-2 pl-3">
           <input
             type="search"
             aria-label="게시판 검색"
