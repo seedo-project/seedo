@@ -1,7 +1,9 @@
+import { unstable_cache } from "next/cache";
 import { notFound } from "next/navigation";
 
 import { formatPublishedDateKo, formatRelativeKo } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import type { Post, PostType } from "@/components/post/post-card";
 
 export type PostDetail = {
@@ -24,8 +26,18 @@ function previewFromBody(body: string): string {
     .join("\n");
 }
 
-export async function fetchPosts(): Promise<Post[]> {
-  const supabase = await createClient();
+/**
+ * 30 초 캐시. 게시판 목록은 user-agnostic — cookies 비의존 public client 사용.
+ * 새 글 작성/삭제 시 `revalidateTag("posts:feed")` 로 명시적 무효화 가능 (후속).
+ */
+export const fetchPosts = unstable_cache(
+  fetchPostsRaw,
+  ["posts:feed"],
+  { revalidate: 30, tags: ["posts:feed"] },
+);
+
+async function fetchPostsRaw(): Promise<Post[]> {
+  const supabase = createPublicClient();
   const { data, error } = await supabase
     .from("posts")
     .select("id, post_type, title, body, created_at")
